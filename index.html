@@ -1,0 +1,1052 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Yogesh Dairy Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a; --border: #2e3245;
+  --accent: #f5a623; --green: #34d399; --red: #f87171; --blue: #60a5fa;
+  --purple: #a78bfa; --text: #f0f0f5; --muted: #6b7280;
+  --cow: #f5a623; --buffalo: #60a5fa; --morning: #fbbf24; --evening: #818cf8;
+  --radius: 14px; --radius-sm: 8px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Sora', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; }
+::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 4px; }
+
+/* LOGIN */
+#login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; padding: 20px; }
+.login-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 36px 28px; width: 100%; max-width: 340px; text-align: center; }
+.login-logo { font-size: 48px; margin-bottom: 10px; }
+.login-box h2 { font-size: 22px; font-weight: 800; margin-bottom: 4px; }
+.login-box p { font-size: 13px; color: var(--muted); margin-bottom: 24px; }
+.pin-dots { display: flex; justify-content: center; gap: 14px; margin-bottom: 28px; }
+.pin-dot { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--border); background: transparent; transition: all 0.2s; }
+.pin-dot.filled { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 8px rgba(245,166,35,0.5); }
+.pin-keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 240px; margin: 0 auto; }
+.pin-key { padding: 16px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface2); font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 700; color: var(--text); cursor: pointer; transition: all 0.15s; user-select: none; }
+.pin-key:hover { background: var(--border); } .pin-key:active { transform: scale(0.93); }
+.pin-key.del { font-size: 14px; color: var(--muted); } .pin-key.zero { grid-column: 2; }
+.pin-error { color: var(--red); font-size: 12px; margin-top: 14px; min-height: 18px; font-weight: 600; }
+.pin-hint { font-size: 11px; color: var(--muted); margin-top: 10px; line-height: 1.5; }
+
+/* HEADER */
+header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 18px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 200; }
+.header-left { display: flex; align-items: center; gap: 12px; }
+.logo-box { width: 40px; height: 40px; background: linear-gradient(135deg, var(--accent), #e8841a); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
+header h1 { font-size: 17px; font-weight: 800; } header p { font-size: 11px; color: var(--muted); }
+.header-actions { display: flex; gap: 8px; align-items: center; }
+.sync-btn { display: flex; align-items: center; gap: 6px; padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface2); color: var(--muted); font-family: 'Sora', sans-serif; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+.sync-btn.connected { border-color: var(--green); color: var(--green); }
+.sync-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted); flex-shrink: 0; }
+.sync-dot.on { background: var(--green); box-shadow: 0 0 6px var(--green); }
+.lock-btn { padding: 8px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface2); color: var(--muted); font-size: 13px; cursor: pointer; font-family: 'Sora', sans-serif; transition: all 0.2s; }
+.lock-btn:hover { border-color: var(--red); color: var(--red); }
+
+/* TABS */
+.tabs { background: var(--surface); border-bottom: 1px solid var(--border); display: flex; overflow-x: auto; padding: 0 4px; }
+.tab-btn { padding: 13px 15px; border: none; background: none; font-family: 'Sora', sans-serif; font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer; border-bottom: 2px solid transparent; white-space: nowrap; transition: all 0.2s; }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); font-weight: 700; }
+
+main { padding: 16px; max-width: 720px; margin: 0 auto; }
+.section { display: none; } .section.active { display: block; }
+
+.loading-screen { text-align: center; padding: 50px 20px; }
+.spinner-big { width: 38px; height: 38px; border: 3px solid rgba(245,166,35,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 14px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-screen p { color: var(--muted); font-size: 13px; }
+
+.banner { background: rgba(245,166,35,0.08); border: 1px solid rgba(245,166,35,0.3); border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 14px; display: flex; align-items: center; gap: 10px; font-size: 13px; }
+.banner button { margin-left: auto; flex-shrink: 0; }
+
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+.card-title { font-size: 15px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+
+.form-row { display: flex; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
+.form-group { flex: 1; min-width: 130px; }
+label { display: block; font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.6px; margin-bottom: 5px; }
+input, select { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface2); color: var(--text); font-family: 'Sora', sans-serif; font-size: 13px; transition: border-color 0.2s; }
+input:focus, select:focus { outline: none; border-color: var(--accent); }
+input::placeholder { color: var(--muted); } select option { background: var(--surface2); }
+
+.btn { padding: 10px 20px; border-radius: var(--radius-sm); font-family: 'Sora', sans-serif; font-size: 13px; font-weight: 700; border: none; cursor: pointer; transition: all 0.15s; display: inline-flex; align-items: center; gap: 6px; }
+.btn-primary { background: var(--accent); color: #1a0f00; } .btn-primary:hover { background: #f5b840; }
+.btn-outline { background: transparent; border: 1px solid var(--border); color: var(--muted); } .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+.btn-green { background: var(--green); color: #001a10; } .btn-green:hover { background: #4ade80; }
+.btn-danger { background: transparent; border: 1px solid var(--border); color: var(--red); }
+.btn-sm { padding: 6px 12px; font-size: 11px; } .btn-block { width: 100%; justify-content: center; }
+
+.sub-tabs { display: flex; gap: 6px; margin-bottom: 16px; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px; }
+.sub-tab-btn { flex: 1; padding: 9px 8px; border: none; border-radius: 6px; background: none; font-family: 'Sora', sans-serif; font-weight: 600; font-size: 12px; color: var(--muted); cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+.sub-tab-btn.active { background: var(--surface); color: var(--accent); border: 1px solid var(--border); }
+
+.vendor-item { display: flex; align-items: center; gap: 12px; padding: 13px 15px; border-radius: var(--radius-sm); border: 1px solid var(--border); margin-bottom: 10px; background: var(--surface2); transition: border-color 0.2s; }
+.vendor-item:hover { border-color: rgba(245,166,35,0.3); }
+.vendor-avatar { width: 40px; height: 40px; border-radius: 10px; background: linear-gradient(135deg, var(--accent), #c47a10); display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px; color: #1a0f00; flex-shrink: 0; }
+.vendor-info { flex: 1; } .vendor-name { font-weight: 700; font-size: 14px; }
+.vendor-meta { font-size: 11px; color: var(--muted); margin-top: 3px; display: flex; gap: 10px; flex-wrap: wrap; }
+.rate-tag { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+.rate-cow { background: rgba(245,166,35,0.15); color: var(--cow); border: 1px solid rgba(245,166,35,0.3); }
+.rate-buffalo { background: rgba(96,165,250,0.15); color: var(--buffalo); border: 1px solid rgba(96,165,250,0.3); }
+
+.session-toggle { display: flex; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 4px; margin-bottom: 16px; gap: 4px; }
+.sess-btn { flex: 1; padding: 9px; border: none; border-radius: 6px; background: none; font-family: 'Sora', sans-serif; font-weight: 600; font-size: 13px; color: var(--muted); cursor: pointer; transition: all 0.2s; }
+.sess-btn.morning.active { background: rgba(251,191,36,0.15); color: var(--morning); }
+.sess-btn.evening.active { background: rgba(129,140,248,0.15); color: var(--evening); }
+
+.vendor-entry { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 13px 15px; margin-bottom: 10px; }
+.vendor-entry.locked { border-color: rgba(52,211,153,0.25); }
+.vendor-entry-header { font-weight: 700; font-size: 14px; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.entry-fields { display: flex; gap: 10px; flex-wrap: wrap; }
+.entry-field { flex: 1; min-width: 100px; }
+.entry-field label { font-size: 10px; }
+.milk-input-wrap { position: relative; }
+.milk-input-wrap input { padding-right: 28px; }
+.milk-unit { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); font-size: 11px; color: var(--muted); pointer-events: none; }
+.saved-val { padding: 10px 12px; background: rgba(52,211,153,0.08); border: 1px solid rgba(52,211,153,0.2); border-radius: var(--radius-sm); font-size: 13px; font-weight: 700; color: var(--green); }
+.locked-badge { font-size: 10px; background: rgba(52,211,153,0.1); color: var(--green); border: 1px solid rgba(52,211,153,0.2); padding: 2px 8px; border-radius: 20px; margin-left: auto; }
+
+.cycle-badge { display: inline-flex; align-items: center; gap: 6px; padding: 5px 12px; border-radius: 20px; background: rgba(245,166,35,0.1); border: 1px solid rgba(245,166,35,0.3); color: var(--accent); font-size: 12px; font-weight: 700; margin-bottom: 16px; }
+
+.payment-card { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 12px; overflow: hidden; }
+.payment-header { padding: 13px 15px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: background 0.15s; }
+.payment-header:hover { background: rgba(255,255,255,0.02); }
+.payment-body { padding: 0 15px 15px; border-top: 1px solid var(--border); }
+.payment-stat { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.payment-stat:last-child { border-bottom: none; }
+.payment-stat .lbl { color: var(--muted); } .payment-stat .val { font-weight: 600; }
+.amount-big { font-size: 22px; font-weight: 800; color: var(--accent); }
+.paid-tag { color: var(--green); font-size: 11px; font-weight: 700; }
+.pending-tag { color: var(--morning); font-size: 11px; font-weight: 700; }
+
+.stats-row { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+.stat-box { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 14px; }
+.stat-num { font-size: 24px; font-weight: 800; }
+.stat-num.accent { color: var(--accent); } .stat-num.green { color: var(--green); }
+.stat-num.blue { color: var(--blue); } .stat-num.purple { color: var(--purple); }
+.stat-label { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+.data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.data-table th { text-align: left; padding: 8px 10px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); border-bottom: 1px solid var(--border); font-weight: 600; }
+.data-table td { padding: 9px 10px; border-bottom: 1px solid rgba(255,255,255,0.04); }
+.data-table tr:last-child td { border-bottom: none; }
+.data-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+.badge { display: inline-flex; align-items: center; gap: 3px; padding: 2px 8px; border-radius: 20px; font-size: 10px; font-weight: 700; }
+.badge-morning { background: rgba(251,191,36,0.15); color: var(--morning); }
+.badge-evening { background: rgba(129,140,248,0.15); color: var(--evening); }
+
+.modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 500; display: flex; align-items: center; justify-content: center; padding: 16px; }
+.modal { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; width: 100%; max-width: 440px; max-height: 90vh; overflow-y: auto; }
+.modal h3 { font-size: 16px; font-weight: 800; margin-bottom: 16px; }
+.modal-actions { display: flex; gap: 10px; margin-top: 16px; }
+
+.toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--surface2); border: 1px solid var(--border); padding: 10px 20px; border-radius: 30px; font-size: 13px; font-weight: 600; z-index: 9998; transition: transform 0.3s ease; white-space: nowrap; pointer-events: none; }
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.success { border-color: var(--green); color: var(--green); }
+.toast.error { border-color: var(--red); color: var(--red); }
+
+.setup-panel { background: rgba(245,166,35,0.06); border: 1px solid rgba(245,166,35,0.25); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+.step { display: flex; gap: 12px; margin-bottom: 10px; }
+.step-num { width: 22px; height: 22px; background: var(--accent); color: #1a0f00; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; margin-top: 1px; }
+.step-text { font-size: 13px; color: var(--muted); line-height: 1.5; }
+.step-text strong { color: var(--text); }
+code { background: var(--surface2); border: 1px solid var(--border); padding: 2px 6px; border-radius: 4px; font-size: 11px; font-family: monospace; color: var(--accent); }
+.divider { height: 1px; background: var(--border); margin: 14px 0; }
+.empty { text-align: center; padding: 36px 20px; color: var(--muted); }
+.empty .ico { font-size: 36px; margin-bottom: 10px; }
+.empty p { font-size: 13px; }
+.spinner { display: inline-block; width: 14px; height: 14px; border: 2px solid rgba(255,255,255,0.2); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.7s linear infinite; }
+.hidden { display: none !important; }
+
+.report-summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
+.report-stat { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; text-align: center; }
+.report-stat .rnum { font-size: 20px; font-weight: 800; }
+.report-stat .rlbl { font-size: 10px; color: var(--muted); margin-top: 3px; }
+.day-row { display: flex; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.04); padding: 8px 10px; font-size: 12px; }
+.day-row:last-child { border-bottom: none; }
+.day-col { flex: 1; }
+.day-col.dc-date { font-weight: 600; min-width: 80px; }
+.day-col.dc-num { text-align: right; }
+.day-col.dc-amt { text-align: right; font-weight: 700; color: var(--accent); }
+.sub-hdr { display: flex; padding: 6px 10px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; color: var(--muted); border-bottom: 1px solid var(--border); background: var(--surface2); border-radius: 6px 6px 0 0; }
+.sub-hdr .day-col.dc-num, .sub-hdr .day-col.dc-amt { text-align: right; }
+
+.sec-item { display: flex; gap: 12px; align-items: flex-start; padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.sec-item:last-child { border-bottom: none; }
+.sec-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+.sec-text strong { color: var(--text); display: block; margin-bottom: 3px; font-size: 14px; }
+.sec-text span { color: var(--muted); font-size: 12px; line-height: 1.5; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">🐄</div>
+    <h2>Yogesh Dairy</h2>
+    <p id="login-sub">Enter your PIN to continue</p>
+    <div class="pin-dots">
+      <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
+      <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+    </div>
+    <div class="pin-keypad">
+      <button class="pin-key" onclick="pp('1')">1</button>
+      <button class="pin-key" onclick="pp('2')">2</button>
+      <button class="pin-key" onclick="pp('3')">3</button>
+      <button class="pin-key" onclick="pp('4')">4</button>
+      <button class="pin-key" onclick="pp('5')">5</button>
+      <button class="pin-key" onclick="pp('6')">6</button>
+      <button class="pin-key" onclick="pp('7')">7</button>
+      <button class="pin-key" onclick="pp('8')">8</button>
+      <button class="pin-key" onclick="pp('9')">9</button>
+      <button class="pin-key zero" onclick="pp('0')">0</button>
+      <button class="pin-key del" onclick="pd()">⌫</button>
+    </div>
+    <div class="pin-error" id="pin-err"></div>
+    <div class="pin-hint" id="pin-hint"></div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app" class="hidden">
+<header>
+  <div class="header-left">
+    <div class="logo-box">🐄</div>
+    <div><h1>Yogesh Dairy</h1><p id="hdate"></p></div>
+  </div>
+  <div class="header-actions">
+    <button class="sync-btn" id="sync-btn" onclick="openSettings()">
+      <div class="sync-dot" id="sync-dot"></div>
+      <span id="sync-lbl">Setup Sync</span>
+    </button>
+    <button class="lock-btn" onclick="lockApp()" title="Lock App">🔒</button>
+  </div>
+</header>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('dashboard',this)">📊 Dashboard</button>
+  <button class="tab-btn" onclick="switchTab('vendors',this)">👨‍🌾 Vendors</button>
+  <button class="tab-btn" onclick="switchTab('collection',this)">🥛 Collection</button>
+  <button class="tab-btn" onclick="switchTab('payments',this)">💰 Payments</button>
+  <button class="tab-btn" onclick="switchTab('records',this)">📋 Records</button>
+  <button class="tab-btn" onclick="switchTab('security',this)">🔐 Security</button>
+</div>
+
+<main>
+
+<!-- DASHBOARD -->
+<div class="section active" id="tab-dashboard">
+  <div id="dash-content"><div class="loading-screen"><div class="spinner-big"></div><p>Loading data from Google Sheets...</p></div></div>
+</div>
+
+<!-- VENDORS -->
+<div class="section" id="tab-vendors">
+  <div class="sub-tabs">
+    <button class="sub-tab-btn active" id="vs-list-btn" onclick="vSub('list')">👨‍🌾 Vendor List</button>
+    <button class="sub-tab-btn" id="vs-add-btn" onclick="vSub('add')">➕ Add Vendor</button>
+    <button class="sub-tab-btn" id="vs-report-btn" onclick="vSub('report')">📊 Report</button>
+  </div>
+  <div id="vs-list">
+    <div class="card">
+      <div class="card-title"><span>👨‍🌾</span> Vendor List <span style="font-size:12px;color:var(--muted);font-weight:400;" id="vcount"></span></div>
+      <div id="vlist"><div class="loading-screen" style="padding:24px"><div class="spinner-big"></div><p>Loading...</p></div></div>
+    </div>
+  </div>
+  <div id="vs-add" class="hidden">
+    <div class="card">
+      <div class="card-title"><span>➕</span> Add New Vendor</div>
+      <div class="form-row">
+        <div class="form-group"><label>Vendor Name *</label><input type="text" id="vn" placeholder="e.g. Ramesh Patel"></div>
+        <div class="form-group"><label>Phone</label><input type="tel" id="vph" placeholder="9876543210"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>🐄 Cow Rate (₹/L)</label><input type="number" id="vcr" placeholder="55" min="0" step="0.5"></div>
+        <div class="form-group"><label>🐃 Buffalo Rate (₹/L)</label><input type="number" id="vbr" placeholder="70" min="0" step="0.5"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label>Address</label><input type="text" id="vadr" placeholder="Village / Area"></div>
+      </div>
+      <button class="btn btn-primary" onclick="addVendor()">➕ Add Vendor</button>
+    </div>
+  </div>
+  <div id="vs-report" class="hidden">
+    <div class="card">
+      <div class="card-title"><span>📊</span> Vendor Collection Report</div>
+      <div class="form-row">
+        <div class="form-group"><label>Vendor</label><select id="rv" onchange="renderReport()"><option value="">Select Vendor</option></select></div>
+        <div class="form-group"><label>Month</label>
+          <select id="rm" onchange="renderReport()"><option value="0">January</option><option value="1">February</option><option value="2">March</option><option value="3">April</option><option value="4">May</option><option value="5">June</option><option value="6">July</option><option value="7">August</option><option value="8">September</option><option value="9">October</option><option value="10">November</option><option value="11">December</option></select>
+        </div>
+        <div class="form-group"><label>Year</label><input type="number" id="ry" value="2025" onchange="renderReport()"></div>
+        <div class="form-group"><label>Cycle</label>
+          <select id="rc" onchange="renderReport()"><option value="0">All Cycles</option><option value="1">Cycle 1 (1–10)</option><option value="2">Cycle 2 (11–20)</option><option value="3">Cycle 3 (21–end)</option></select>
+        </div>
+      </div>
+    </div>
+    <div id="report-out"></div>
+  </div>
+</div>
+
+<!-- COLLECTION -->
+<div class="section" id="tab-collection">
+  <div class="card">
+    <div class="form-row" style="align-items:flex-end;margin-bottom:12px;">
+      <div class="form-group" style="max-width:170px;"><label>Date</label><input type="date" id="col-date" onchange="renderColl()"></div>
+      <div id="col-cycle" class="cycle-badge" style="margin-bottom:0;">📅 Cycle</div>
+    </div>
+    <div class="session-toggle">
+      <button class="sess-btn morning active" id="sess-m" onclick="setSess('morning')">☀️ Morning</button>
+      <button class="sess-btn evening" id="sess-e" onclick="setSess('evening')">🌙 Evening</button>
+    </div>
+    <div id="coll-entries"><div class="empty"><div class="ico">👨‍🌾</div><p>Add vendors first.</p></div></div>
+    <div id="coll-save" style="display:none;margin-top:12px;">
+      <button class="btn btn-green btn-block" onclick="saveColl()">💾 Save Collection</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENTS -->
+<div class="section" id="tab-payments">
+  <div class="card">
+    <div class="card-title"><span>🗓️</span> Select Cycle</div>
+    <div class="form-row">
+      <div class="form-group"><label>Month</label>
+        <select id="pm" onchange="renderPay()"><option value="0">January</option><option value="1">February</option><option value="2">March</option><option value="3">April</option><option value="4">May</option><option value="5">June</option><option value="6">July</option><option value="7">August</option><option value="8">September</option><option value="9">October</option><option value="10">November</option><option value="11">December</option></select>
+      </div>
+      <div class="form-group"><label>Year</label><input type="number" id="py" value="2025" onchange="renderPay()"></div>
+      <div class="form-group"><label>Cycle</label>
+        <select id="pc" onchange="renderPay()"><option value="1">Cycle 1 (1–10)</option><option value="2">Cycle 2 (11–20)</option><option value="3">Cycle 3 (21–end)</option></select>
+      </div>
+    </div>
+  </div>
+  <div id="pay-list"></div>
+</div>
+
+<!-- RECORDS -->
+<div class="section" id="tab-records">
+  <div class="card">
+    <div class="card-title"><span>📋</span> Collection Records</div>
+    <div class="form-row" style="margin-bottom:12px;">
+      <div class="form-group"><label>Vendor</label><select id="rec-v" onchange="renderRec()"><option value="">All Vendors</option></select></div>
+      <div class="form-group"><label>Session</label><select id="rec-s" onchange="renderRec()"><option value="">Both</option><option value="morning">Morning</option><option value="evening">Evening</option></select></div>
+    </div>
+    <div id="rec-wrap"><div class="empty"><div class="ico">📭</div><p>No records yet.</p></div></div>
+  </div>
+</div>
+
+<!-- SECURITY -->
+<div class="section" id="tab-security">
+  <div class="card">
+    <div class="card-title"><span>🔐</span> Security Overview</div>
+    <div class="sec-item"><div class="sec-icon">🔑</div><div class="sec-text"><strong>PIN Lock</strong><span>App is locked with a 4-digit PIN. Auto-locks after 5 minutes of inactivity.</span></div></div>
+    <div class="sec-item"><div class="sec-icon">☁️</div><div class="sec-text"><strong>Google Sheets as Database</strong><span>All data lives only in your Google Sheet. Nothing is stored permanently on this device.</span></div></div>
+    <div class="sec-item"><div class="sec-icon">🔒</div><div class="sec-text"><strong>No Edit / No Delete</strong><span>Collection entries cannot be edited or deleted once saved — prevents accidental data tampering.</span></div></div>
+    <div class="sec-item"><div class="sec-icon">✏️</div><div class="sec-text"><strong>Rate-Only Updates</strong><span>Only milk rates (₹/L) can be updated on vendor profiles, as rates change each 10-day cycle.</span></div></div>
+    <div class="sec-item"><div class="sec-icon">📱</div><div class="sec-text"><strong>Multi-Device Access</strong><span>Open on any phone or computer — always fetches fresh data from Google Sheets on every login.</span></div></div>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>🔑</span> Change PIN</div>
+    <div class="form-row">
+      <div class="form-group"><label>Current PIN</label><input type="password" id="op" maxlength="4" placeholder="••••" inputmode="numeric"></div>
+      <div class="form-group"><label>New PIN</label><input type="password" id="np" maxlength="4" placeholder="••••" inputmode="numeric"></div>
+      <div class="form-group"><label>Confirm PIN</label><input type="password" id="cp" maxlength="4" placeholder="••••" inputmode="numeric"></div>
+    </div>
+    <button class="btn btn-primary" onclick="changePin()">🔑 Update PIN</button>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>☁️</span> Sheet Connection</div>
+    <div id="sec-sheet-status" style="font-size:13px;margin-bottom:12px;"></div>
+    <button class="btn btn-outline" onclick="openSettings()">⚙️ Manage Connection</button>
+  </div>
+</div>
+
+</main>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-overlay hidden" id="settings-modal" onclick="if(event.target===this)closeSettings()">
+  <div class="modal">
+    <h3>⚙️ Google Sheets Sync</h3>
+    <div class="setup-panel">
+      <strong style="font-size:13px;">One-time setup:</strong>
+      <div style="margin-top:12px;">
+        <div class="step"><div class="step-num">1</div><div class="step-text">Create a new Google Sheet named <strong>"Yogesh Dairy"</strong></div></div>
+        <div class="step"><div class="step-num">2</div><div class="step-text">Go to <strong>Extensions → Apps Script</strong>, paste the provided script, save</div></div>
+        <div class="step"><div class="step-num">3</div><div class="step-text"><strong>Deploy → New deployment → Web app</strong>, set access to <code>Anyone</code>, copy the URL</div></div>
+        <div class="step"><div class="step-num">4</div><div class="step-text">Paste URL below and click Connect</div></div>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:12px;">
+      <label>Apps Script Web App URL</label>
+      <input type="url" id="sheet-url" placeholder="https://script.google.com/macros/s/...">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" style="flex:1;" id="conn-btn" onclick="connectSheet()">🔗 Connect & Load Data</button>
+      <button class="btn btn-outline" onclick="closeSettings()">Cancel</button>
+    </div>
+    <div id="conn-status" style="margin-top:10px;font-size:12px;color:var(--muted);"></div>
+    <div class="divider"></div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+      <button class="btn btn-outline btn-sm" onclick="pullFromSheet()">🔄 Refresh All Data</button>
+      <button class="btn btn-danger btn-sm" onclick="disconnectSheet()">✕ Disconnect</button>
+    </div>
+  </div>
+</div>
+
+<!-- RATE EDIT MODAL -->
+<div class="modal-overlay hidden" id="rate-modal" onclick="if(event.target===this)closeRate()">
+  <div class="modal">
+    <h3>✏️ Update Milk Rates</h3>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">Only milk rates can be updated. Name, phone and address are permanent.</p>
+    <input type="hidden" id="rate-id">
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:14px;">
+      <div id="rate-vname" style="font-weight:700;font-size:15px;"></div>
+      <div id="rate-vmeta" style="font-size:12px;color:var(--muted);margin-top:3px;"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>🐄 Cow Rate (₹/L)</label><input type="number" id="rate-cr" step="0.5" min="0"></div>
+      <div class="form-group"><label>🐃 Buffalo Rate (₹/L)</label><input type="number" id="rate-br" step="0.5" min="0"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-primary" style="flex:1;" onclick="saveRates()">💾 Save Rates</button>
+      <button class="btn btn-outline" onclick="closeRate()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div class="modal-overlay hidden" id="pay-modal" onclick="if(event.target===this)closePay()">
+  <div class="modal">
+    <h3>💳 Record Payment</h3>
+    <div id="pay-info" style="margin-bottom:14px;font-size:13px;color:var(--muted);"></div>
+    <input type="hidden" id="pay-vid">
+    <div class="form-group" style="margin-bottom:8px;"><label>Gross Amount Due</label><div id="pay-due" style="font-size:22px;font-weight:800;color:var(--accent);padding:4px 0;"></div></div>
+    <div class="form-group" style="margin-bottom:12px;"><label>Amount Paid (₹)</label><input type="number" id="pay-amt" step="0.5"></div>
+    <div class="form-group" style="margin-bottom:12px;"><label>Payment Mode</label>
+      <select id="pay-mode"><option>Cash</option><option>UPI</option><option>Bank Transfer</option><option>Cheque</option></select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-green" style="flex:1;" onclick="confirmPay()">✅ Confirm Payment</button>
+      <button class="btn btn-outline" onclick="closePay()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// =========================================================
+// STATE — no localStorage for business data
+// =========================================================
+let V = [], C = [], P = []; // vendors, collections, payments
+let sheetUrl = localStorage.getItem('yd_url') || '';
+let sess = 'morning';
+let payData = null;
+let lockTimer = null;
+const LOCK_TIME = 5 * 60 * 1000;
+
+// =========================================================
+// PIN
+// =========================================================
+let pinBuf = '';
+function getPin() { return localStorage.getItem('yd_pin') || '1234'; }
+
+function initLogin() {
+  const hasPin = !!localStorage.getItem('yd_pin');
+  document.getElementById('login-sub').textContent = hasPin ? 'Enter your PIN to continue' : 'Enter PIN to login (default: 1234)';
+  document.getElementById('pin-hint').textContent = hasPin ? '' : 'Change your PIN after login in the Security tab.';
+  pinBuf = ''; updateDots();
+  document.getElementById('pin-err').textContent = '';
+}
+
+function pp(d) {
+  if (pinBuf.length >= 4) return;
+  pinBuf += d; updateDots();
+  if (pinBuf.length === 4) setTimeout(checkPin, 120);
+}
+function pd() { pinBuf = pinBuf.slice(0,-1); updateDots(); document.getElementById('pin-err').textContent = ''; }
+function updateDots() { for(let i=0;i<4;i++) document.getElementById('d'+i).classList.toggle('filled', i < pinBuf.length); }
+
+function checkPin() {
+  if (pinBuf === getPin()) {
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    initApp();
+    resetLock();
+  } else {
+    document.getElementById('pin-err').textContent = '❌ Wrong PIN. Try again.';
+    pinBuf = ''; updateDots();
+  }
+}
+
+function lockApp() {
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+  V = []; C = []; P = [];
+  clearTimeout(lockTimer);
+  initLogin();
+}
+
+function resetLock() {
+  clearTimeout(lockTimer);
+  lockTimer = setTimeout(lockApp, LOCK_TIME);
+}
+document.addEventListener('click', resetLock);
+document.addEventListener('touchstart', resetLock);
+
+function changePin() {
+  const op = document.getElementById('op').value;
+  const np = document.getElementById('np').value;
+  const cp2 = document.getElementById('cp').value;
+  if (op !== getPin()) { toast('Current PIN incorrect', 'error'); return; }
+  if (!/^\d{4}$/.test(np)) { toast('PIN must be 4 digits', 'error'); return; }
+  if (np !== cp2) { toast('PINs do not match', 'error'); return; }
+  localStorage.setItem('yd_pin', np);
+  document.getElementById('op').value = '';
+  document.getElementById('np').value = '';
+  document.getElementById('cp').value = '';
+  toast('✅ PIN updated!');
+}
+
+// =========================================================
+// INIT
+// =========================================================
+async function initApp() {
+  const now = new Date();
+  const DAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('hdate').textContent = `${DAYS[now.getDay()]}, ${now.getDate()} ${MONTHS[now.getMonth()]} ${now.getFullYear()}`;
+  document.getElementById('pm').value = now.getMonth();
+  document.getElementById('py').value = now.getFullYear();
+  document.getElementById('pc').value = cycleFor(toDay());
+  document.getElementById('rm').value = now.getMonth();
+  document.getElementById('ry').value = now.getFullYear();
+  document.getElementById('rc').value = cycleFor(toDay());
+  updateSyncUI();
+  if (!sheetUrl) { showNoSheetScreen(); }
+  else { showLoadingScreen(); await pull(true); }
+}
+
+function showLoadingScreen() {
+  document.getElementById('dash-content').innerHTML = '<div class="loading-screen"><div class="spinner-big"></div><p>Loading data from Google Sheets...</p></div>';
+  const vl = document.getElementById('vlist');
+  if (vl) vl.innerHTML = '<div class="loading-screen" style="padding:24px"><div class="spinner-big"></div><p>Loading...</p></div>';
+}
+
+function showNoSheetScreen() {
+  const html = `<div style="text-align:center;padding:40px 20px;"><div style="font-size:48px;margin-bottom:16px;">🔗</div><div style="font-size:18px;font-weight:800;margin-bottom:8px;">Google Sheets Not Connected</div><div style="font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6;">This app requires Google Sheets to work.<br>All your data is stored securely in your sheet.</div><button class="btn btn-primary" onclick="openSettings()">⚙️ Setup Google Sheets Sync</button></div>`;
+  document.getElementById('dash-content').innerHTML = html;
+  const vl = document.getElementById('vlist'); if (vl) vl.innerHTML = html;
+}
+
+function showNoInternetScreen() {
+  const html = `<div style="text-align:center;padding:40px 20px;"><div style="font-size:48px;margin-bottom:16px;">📵</div><div style="font-size:18px;font-weight:800;margin-bottom:8px;color:var(--red);">No Internet Connection</div><div style="font-size:13px;color:var(--muted);margin-bottom:24px;line-height:1.6;">This app needs internet to load your data<br>from Google Sheets.<br><br>Please check your connection and try again.</div><button class="btn btn-primary" onclick="retryLoad()">🔄 Retry</button></div>`;
+  document.getElementById('dash-content').innerHTML = html;
+  const vl = document.getElementById('vlist'); if (vl) vl.innerHTML = html;
+}
+
+async function retryLoad() {
+  if (!sheetUrl) { showNoSheetScreen(); return; }
+  showLoadingScreen(); await pull(true);
+}
+
+// =========================================================
+// UTILS
+// =========================================================
+function uid() { return Date.now()+'_'+Math.random().toString(36).substr(2,5); }
+function toast(msg, type='success') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'toast '+type+' show';
+  setTimeout(() => el.className = 'toast', 2800);
+}
+function fmtDate(d) {
+  if (!d) return '';
+  const s = String(d).substring(0,10).split('-');
+  if (s.length < 3) return d;
+  const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return `${s[2]} ${MN[+s[1]-1]} ${s[0]}`;
+}
+function toDay() { return new Date().toISOString().split('T')[0]; }
+function cycleFor(ds) { const d=parseInt(String(ds).split('-')[2]); return d<=10?1:d<=20?2:3; }
+function cycleName(c) { return c===1?'1–10':c===2?'11–20':'21–end'; }
+function cycleDates(yr, mo, cy) {
+  const m = String(mo+1).padStart(2,'0');
+  if (cy===1) return {s:`${yr}-${m}-01`, e:`${yr}-${m}-10`};
+  if (cy===2) return {s:`${yr}-${m}-11`, e:`${yr}-${m}-20`};
+  const ld = new Date(yr, mo+1, 0).getDate();
+  return {s:`${yr}-${m}-21`, e:`${yr}-${m}-${String(ld).padStart(2,'0')}`};
+}
+
+// =========================================================
+// TABS
+// =========================================================
+function switchTab(t, btn) {
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  btn.classList.add('active');
+  // If not connected to sheet, only allow dashboard & security
+  if (!sheetUrl && t!=='dashboard' && t!=='security') {
+    toast('Connect to Google Sheets first!','error');
+    return;
+  }
+  if (t==='collection') { initCollDate(); renderColl(); }
+  if (t==='payments') renderPay();
+  if (t==='records') { updRecSel(); renderRec(); }
+  if (t==='dashboard') renderDash();
+  if (t==='security') renderSecStatus();
+  if (t==='vendors') renderVList();
+}
+
+function vSub(s) {
+  ['list','add','report'].forEach(x => {
+    document.getElementById('vs-'+x).classList.toggle('hidden', x!==s);
+    document.getElementById('vs-'+x+'-btn').classList.toggle('active', x===s);
+  });
+  if (s==='report') { updRptSel(); renderReport(); }
+}
+
+// =========================================================
+// VENDORS
+// =========================================================
+async function addVendor() {
+  const name = document.getElementById('vn').value.trim();
+  if (!name) { toast('Enter vendor name', 'error'); return; }
+  if (!sheetUrl) { toast('Connect to Google Sheets first!', 'error'); return; }
+  const vendor = {
+    id: uid(), name,
+    phone: document.getElementById('vph').value.trim(),
+    cowRate: parseFloat(document.getElementById('vcr').value)||0,
+    buffaloRate: parseFloat(document.getElementById('vbr').value)||0,
+    address: document.getElementById('vadr').value.trim()
+  };
+  V.push(vendor); renderVList();
+  const ok = await sync('addVendor', {vendor});
+  if (ok) {
+    toast('✅ Vendor added & saved!');
+    ['vn','vph','vcr','vbr','vadr'].forEach(id => document.getElementById(id).value='');
+    vSub('list');
+  } else {
+    V = V.filter(v=>v.id!==vendor.id); renderVList();
+    toast('❌ Failed to save vendor. Check sheet connection.', 'error');
+  }
+}
+
+function openRate(id) {
+  const v = V.find(x=>x.id===id); if (!v) return;
+  document.getElementById('rate-id').value = v.id;
+  document.getElementById('rate-vname').textContent = v.name;
+  document.getElementById('rate-vmeta').textContent = (v.phone?'📞 '+v.phone:'')+(v.address?' · 📍'+v.address:'');
+  document.getElementById('rate-cr').value = v.cowRate||'';
+  document.getElementById('rate-br').value = v.buffaloRate||'';
+  document.getElementById('rate-modal').classList.remove('hidden');
+}
+function closeRate() { document.getElementById('rate-modal').classList.add('hidden'); }
+
+async function saveRates() {
+  const id = document.getElementById('rate-id').value;
+  const idx = V.findIndex(v=>v.id===id); if (idx<0) return;
+  const prev = {...V[idx]};
+  V[idx] = {...V[idx], cowRate: parseFloat(document.getElementById('rate-cr').value)||0, buffaloRate: parseFloat(document.getElementById('rate-br').value)||0};
+  closeRate(); renderVList();
+  const ok = await sync('updateVendor', {vendor: V[idx]});
+  if (ok) { toast('✅ Rates updated!'); }
+  else { V[idx] = prev; renderVList(); toast('❌ Failed to update rates', 'error'); }
+}
+
+function renderVList() {
+  const el = document.getElementById('vlist');
+  document.getElementById('vcount').textContent = V.length ? `(${V.length})` : '';
+  if (!V.length) { el.innerHTML = '<div class="empty"><div class="ico">👤</div><p>No vendors yet.</p></div>'; return; }
+  el.innerHTML = V.map(v => `
+    <div class="vendor-item">
+      <div class="vendor-avatar">${v.name[0].toUpperCase()}</div>
+      <div class="vendor-info">
+        <div class="vendor-name">${v.name}</div>
+        <div class="vendor-meta">${v.phone?`<span>📞 ${v.phone}</span>`:''}${v.address?`<span>📍 ${v.address}</span>`:''}</div>
+        <div style="margin-top:5px;display:flex;gap:6px;">
+          <span class="rate-tag rate-cow">🐄 ₹${v.cowRate}/L</span>
+          <span class="rate-tag rate-buffalo">🐃 ₹${v.buffaloRate}/L</span>
+        </div>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="openRate('${v.id}')" title="Update rates only">₹ Rate</button>
+    </div>`).join('');
+}
+
+// =========================================================
+// COLLECTION
+// =========================================================
+function initCollDate() { if (!document.getElementById('col-date').value) document.getElementById('col-date').value = toDay(); }
+function setSess(s) {
+  sess = s;
+  document.getElementById('sess-m').classList.toggle('active', s==='morning');
+  document.getElementById('sess-e').classList.toggle('active', s==='evening');
+  renderColl();
+}
+
+function renderColl() {
+  const dateEl = document.getElementById('col-date');
+  if (!dateEl.value) dateEl.value = toDay();
+  const date = dateEl.value;
+  document.getElementById('col-cycle').textContent = `📅 Cycle ${cycleName(cycleFor(date))}`;
+  const wrap = document.getElementById('coll-entries');
+  const saveBtn = document.getElementById('coll-save');
+  if (!V.length) { wrap.innerHTML = '<div class="empty"><div class="ico">👨‍🌾</div><p>Add vendors first.</p></div>'; saveBtn.style.display='none'; return; }
+
+  const saved = {};
+  C.filter(r=>r.date===date && r.session===sess).forEach(r=>{saved[r.vendorId]=r;});
+
+  let anyNew = false;
+  wrap.innerHTML = V.map(v => {
+    const ex = saved[v.id];
+    if (ex) {
+      return `<div class="vendor-entry locked">
+        <div class="vendor-entry-header">
+          <span style="width:26px;height:26px;background:var(--surface);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">${v.name[0].toUpperCase()}</span>
+          ${v.name} <span class="locked-badge">✅ Saved</span>
+        </div>
+        <div class="entry-fields">
+          <div class="entry-field"><label>🐄 Cow Milk</label><div class="saved-val">${ex.cowLitres||0} L</div></div>
+          <div class="entry-field"><label>🐃 Buffalo Milk</label><div class="saved-val">${ex.buffaloLitres||0} L</div></div>
+          <div class="entry-field"><label>Amount</label><div class="saved-val">₹${(ex.amount||0).toFixed(0)}</div></div>
+        </div>
+      </div>`;
+    }
+    anyNew = true;
+    return `<div class="vendor-entry">
+      <div class="vendor-entry-header">
+        <span style="width:26px;height:26px;background:var(--surface);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">${v.name[0].toUpperCase()}</span>
+        ${v.name}
+        <span class="rate-tag rate-cow" style="margin-left:auto;">🐄₹${v.cowRate}</span>
+        <span class="rate-tag rate-buffalo">🐃₹${v.buffaloRate}</span>
+      </div>
+      <div class="entry-fields">
+        <div class="entry-field"><label>🐄 Cow (L)</label><div class="milk-input-wrap"><input type="number" id="c${v.id}" min="0" step="0.1" placeholder="0.0" oninput="calcAmt('${v.id}')"><span class="milk-unit">L</span></div></div>
+        <div class="entry-field"><label>🐃 Buffalo (L)</label><div class="milk-input-wrap"><input type="number" id="b${v.id}" min="0" step="0.1" placeholder="0.0" oninput="calcAmt('${v.id}')"><span class="milk-unit">L</span></div></div>
+        <div class="entry-field"><label>Amount ₹</label><div id="a${v.id}" style="padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:700;color:var(--accent);">—</div></div>
+      </div>
+    </div>`;
+  }).join('');
+  saveBtn.style.display = anyNew ? 'block' : 'none';
+}
+
+function calcAmt(vid) {
+  const v = V.find(x=>x.id===vid); if (!v) return;
+  const cow = parseFloat(document.getElementById('c'+vid)?.value)||0;
+  const buf = parseFloat(document.getElementById('b'+vid)?.value)||0;
+  const el = document.getElementById('a'+vid);
+  if (el) el.textContent = (cow||buf) ? '₹'+((cow*v.cowRate)+(buf*v.buffaloRate)).toFixed(2) : '—';
+}
+
+async function saveColl() {
+  const date = document.getElementById('col-date').value;
+  if (!date) { toast('Select date', 'error'); return; }
+  if (!sheetUrl) { toast('Connect to Google Sheets first!', 'error'); return; }
+  const savedMap = {};
+  C.filter(r=>r.date===date&&r.session===sess).forEach(r=>{savedMap[r.vendorId]=true;});
+  const recs = [];
+  V.forEach(v => {
+    if (savedMap[v.id]) return;
+    const cow = parseFloat(document.getElementById('c'+v.id)?.value)||0;
+    const buf = parseFloat(document.getElementById('b'+v.id)?.value)||0;
+    if (cow>0||buf>0) recs.push({id:uid(), date, session:sess, vendorId:v.id, vendorName:v.name, cowLitres:cow, buffaloLitres:buf, cowRate:v.cowRate, buffaloRate:v.buffaloRate, amount:(cow*v.cowRate)+(buf*v.buffaloRate)});
+  });
+  if (!recs.length) { toast('No new entries to save', 'error'); return; }
+  recs.forEach(r=>C.push(r)); renderColl();
+  const ok = await sync('saveCollection', {records:recs});
+  if (ok) { toast(`✅ ${recs.length} entr${recs.length>1?'ies':'y'} saved!`); renderDash(); }
+  else { recs.forEach(r=>{C=C.filter(c=>c.id!==r.id);}); renderColl(); toast('❌ Failed to save. Check connection.', 'error'); }
+}
+
+// =========================================================
+// PAYMENTS
+// =========================================================
+function renderPay() {
+  const mo=parseInt(document.getElementById('pm').value), yr=parseInt(document.getElementById('py').value), cy=parseInt(document.getElementById('pc').value);
+  const {s,e} = cycleDates(yr,mo,cy);
+  const el = document.getElementById('pay-list');
+  if (!V.length) { el.innerHTML = '<div class="empty"><div class="ico">💰</div><p>No vendors yet.</p></div>'; return; }
+  const cols = C.filter(r=>r.date>=s && r.date<=e);
+  el.innerHTML = V.map(v => {
+    const vc = cols.filter(r=>r.vendorId===v.id);
+    const tCow=vc.reduce((a,r)=>a+(r.cowLitres||0),0), tBuf=vc.reduce((a,r)=>a+(r.buffaloLitres||0),0);
+    const gross=vc.reduce((a,r)=>a+(r.amount||0),0);
+    const pk=`${v.id}_${s}`, ep=P.find(p=>p.key===pk);
+    const paid=ep?ep.paidAmount:0, bal=gross-paid;
+    return `<div class="payment-card">
+      <div class="payment-header" onclick="togPay('pp${v.id}')">
+        <div class="vendor-avatar" style="width:34px;height:34px;font-size:13px;">${v.name[0].toUpperCase()}</div>
+        <div style="flex:1;"><div style="font-weight:700;font-size:14px;">${v.name}</div><div style="font-size:11px;color:var(--muted);">${fmtDate(s)} – ${fmtDate(e)}</div></div>
+        <div style="text-align:right;"><div class="amount-big">₹${gross.toFixed(0)}</div><div>${bal<=0?'<span class="paid-tag">✅ PAID</span>':`<span class="pending-tag">₹${bal.toFixed(0)} pending</span>`}</div></div>
+      </div>
+      <div class="payment-body hidden" id="pp${v.id}">
+        <div class="payment-stat"><span class="lbl">🐄 Cow</span><span class="val">${tCow.toFixed(1)}L × ₹${v.cowRate} = ₹${(tCow*v.cowRate).toFixed(0)}</span></div>
+        <div class="payment-stat"><span class="lbl">🐃 Buffalo</span><span class="val">${tBuf.toFixed(1)}L × ₹${v.buffaloRate} = ₹${(tBuf*v.buffaloRate).toFixed(0)}</span></div>
+        <div class="payment-stat"><span class="lbl">Gross</span><span class="val" style="color:var(--accent);">₹${gross.toFixed(2)}</span></div>
+        <div class="payment-stat"><span class="lbl">Paid</span><span class="val" style="color:var(--green);">₹${paid.toFixed(2)}</span></div>
+        <div class="payment-stat"><span class="lbl">Balance</span><span class="val" style="color:${bal>0?'var(--morning)':'var(--green)'};">₹${bal.toFixed(2)}</span></div>
+        ${ep?`<div class="payment-stat"><span class="lbl">Mode</span><span class="val">${ep.note||''}</span></div>`:''}
+        ${gross>0?`<button class="btn btn-primary btn-sm" style="margin-top:10px;" onclick="openPay('${v.id}','${s}','${e}',${gross},${paid})">💳 ${paid>0?'Update':'Record'} Payment</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function togPay(id) { const el=document.getElementById(id); if(el) el.classList.toggle('hidden'); }
+
+function openPay(vid, cs, ce, gross, paid) {
+  const v=V.find(x=>x.id===vid);
+  payData={vid,cs,ce,gross};
+  document.getElementById('pay-vid').value=vid;
+  document.getElementById('pay-info').textContent=`${v.name} · ${fmtDate(cs)} to ${fmtDate(ce)}`;
+  document.getElementById('pay-due').textContent=`₹${(gross-paid).toFixed(2)}`;
+  document.getElementById('pay-amt').value=(gross-paid).toFixed(2);
+  document.getElementById('pay-modal').classList.remove('hidden');
+}
+
+async function confirmPay() {
+  const {vid,cs,ce,gross}=payData;
+  const v=V.find(x=>x.id===vid);
+  const paidAmt=parseFloat(document.getElementById('pay-amt').value)||0;
+  const note=document.getElementById('pay-mode').value;
+  const pk=`${vid}_${cs}`;
+  const vc=C.filter(r=>r.vendorId===vid&&r.date>=cs&&r.date<=ce);
+  const po={id:uid(),key:pk,vendorId:vid,vendorName:v.name,cycleStart:cs,cycleEnd:ce,totalCowL:vc.reduce((a,r)=>a+(r.cowLitres||0),0),totalBuffaloL:vc.reduce((a,r)=>a+(r.buffaloLitres||0),0),cowRate:v.cowRate,buffaloRate:v.buffaloRate,grossAmount:gross,paidAmount:paidAmt,balance:gross-paidAmt,note,paidAt:new Date().toISOString()};
+  P=P.filter(p=>p.key!==pk); P.push(po);
+  closePay(); renderPay();
+  const ok=await sync('savePayment',{payment:po});
+  if (ok) { toast('✅ Payment recorded!'); renderDash(); }
+  else toast('❌ Payment save failed', 'error');
+}
+function closePay() { document.getElementById('pay-modal').classList.add('hidden'); }
+
+// =========================================================
+// RECORDS
+// =========================================================
+function updRecSel() {
+  document.getElementById('rec-v').innerHTML='<option value="">All Vendors</option>'+V.map(v=>`<option value="${v.id}">${v.name}</option>`).join('');
+}
+function renderRec() {
+  let data=[...C];
+  const vf=document.getElementById('rec-v').value, sf=document.getElementById('rec-s').value;
+  if (vf) data=data.filter(r=>r.vendorId===vf);
+  if (sf) data=data.filter(r=>r.session===sf);
+  data.sort((a,b)=>b.date.localeCompare(a.date)||(a.session==='morning'?-1:1));
+  const wrap=document.getElementById('rec-wrap');
+  if (!data.length) { wrap.innerHTML='<div class="empty"><div class="ico">📭</div><p>No records found.</p></div>'; return; }
+  wrap.innerHTML=`<div style="overflow-x:auto;"><table class="data-table">
+    <thead><tr><th>Date</th><th>Vendor</th><th>Session</th><th>🐄L</th><th>🐃L</th><th>Amount</th></tr></thead>
+    <tbody>${data.map(r=>`<tr><td>${fmtDate(r.date)}</td><td>${r.vendorName}</td>
+      <td><span class="badge badge-${r.session}">${r.session==='morning'?'☀️':'🌙'} ${r.session}</span></td>
+      <td>${r.cowLitres||0}</td><td>${r.buffaloLitres||0}</td>
+      <td style="color:var(--accent);font-weight:600;">₹${(r.amount||0).toFixed(0)}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+// =========================================================
+// DASHBOARD
+// =========================================================
+function renderDash() {
+  const today=toDay(), now=new Date(), cy=cycleFor(today);
+  const {s,e}=cycleDates(now.getFullYear(), now.getMonth(), cy);
+  const mT=C.filter(r=>r.date===today&&r.session==='morning');
+  const eT=C.filter(r=>r.date===today&&r.session==='evening');
+  const mL=mT.reduce((a,r)=>a+(r.cowLitres||0)+(r.buffaloLitres||0),0);
+  const eL=eT.reduce((a,r)=>a+(r.cowLitres||0)+(r.buffaloLitres||0),0);
+  const allToday=[...mT,...eT];
+  const todayAmt=allToday.reduce((a,r)=>a+(r.amount||0),0);
+  const cycleC=C.filter(r=>r.date>=s&&r.date<=e);
+  const pending=V.filter(v=>{const g=cycleC.filter(r=>r.vendorId===v.id).reduce((a,r)=>a+(r.amount||0),0),pd=(P.find(p=>p.key===`${v.id}_${s}`)||{}).paidAmount||0; return g>0&&(g-pd)>0;});
+
+  document.getElementById('dash-content').innerHTML = `
+    ${!sheetUrl?`<div class="banner">⚠️ Not connected to Google Sheets — data won't be saved!<button class="btn btn-primary btn-sm" onclick="openSettings()">Connect</button></div>`:''}
+    <div class="stats-row">
+      <div class="stat-box"><div class="stat-num accent">${V.length}</div><div class="stat-label">Total Vendors</div></div>
+      <div class="stat-box"><div class="stat-num green">${cycleName(cy)}</div><div class="stat-label">Current Cycle</div></div>
+      <div class="stat-box"><div class="stat-num blue">${mL.toFixed(1)}L</div><div class="stat-label">Today Morning</div></div>
+      <div class="stat-box"><div class="stat-num purple">${eL.toFixed(1)}L</div><div class="stat-label">Today Evening</div></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span>📅</span> Today's Collection ${todayAmt>0?`<span style="margin-left:auto;font-size:13px;color:var(--accent);">₹${todayAmt.toFixed(0)}</span>`:''}
+      </div>
+      ${!allToday.length?'<div class="empty" style="padding:16px"><div class="ico">📭</div><p>No collection recorded today.</p></div>'
+      :`<div style="overflow-x:auto;"><table class="data-table"><thead><tr><th>Vendor</th><th>Session</th><th>🐄L</th><th>🐃L</th><th>Amount</th></tr></thead><tbody>
+        ${allToday.map(r=>`<tr><td>${r.vendorName}</td><td><span class="badge badge-${r.session}">${r.session==='morning'?'☀️':'🌙'}</span></td><td>${r.cowLitres||0}</td><td>${r.buffaloLitres||0}</td><td style="color:var(--accent);font-weight:700;">₹${(r.amount||0).toFixed(0)}</td></tr>`).join('')}
+        <tr><td colspan="4" style="font-weight:800;">Total</td><td style="color:var(--accent);font-weight:800;font-size:15px;">₹${todayAmt.toFixed(0)}</td></tr>
+      </tbody></table></div>`}
+    </div>
+    <div class="card">
+      <div class="card-title"><span>💰</span> Pending — Cycle ${cycleName(cy)}</div>
+      ${!pending.length?'<div class="empty" style="padding:16px"><div class="ico">✅</div><p>All payments up to date.</p></div>'
+      :pending.map(v=>{const g=cycleC.filter(r=>r.vendorId===v.id).reduce((a,r)=>a+(r.amount||0),0),pd=(P.find(p=>p.key===`${v.id}_${s}`)||{}).paidAmount||0;return`<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;background:var(--surface2);"><div><div style="font-weight:700;">${v.name}</div><div style="font-size:11px;color:var(--muted);">Cycle ${cycleName(cy)}</div></div><div style="color:var(--morning);font-weight:800;font-size:16px;">₹${(g-pd).toFixed(0)}</div></div>`;}).join('')}
+    </div>`;
+}
+
+// =========================================================
+// VENDOR REPORT
+// =========================================================
+function updRptSel() {
+  const sel=document.getElementById('rv'), cur=sel.value;
+  sel.innerHTML='<option value="">Select Vendor</option>'+V.map(v=>`<option value="${v.id}">${v.name}</option>`).join('');
+  if(cur) sel.value=cur;
+}
+function renderReport() {
+  const vid=document.getElementById('rv').value, mo=parseInt(document.getElementById('rm').value), yr=parseInt(document.getElementById('ry').value), cy=parseInt(document.getElementById('rc').value);
+  const out=document.getElementById('report-out');
+  if (!vid) { out.innerHTML='<div class="card"><div class="empty"><div class="ico">👨‍🌾</div><p>Select a vendor to view report.</p></div></div>'; return; }
+  const vendor=V.find(v=>v.id===vid); if(!vendor) return;
+  const ms=String(mo+1).padStart(2,'0'), ld=new Date(yr,mo+1,0).getDate();
+  const ds=cy===0?`${yr}-${ms}-01`:cycleDates(yr,mo,cy).s;
+  const de=cy===0?`${yr}-${ms}-${String(ld).padStart(2,'0')}`:cycleDates(yr,mo,cy).e;
+  const vc=C.filter(r=>r.vendorId===vid&&r.date>=ds&&r.date<=de);
+  if (!vc.length) { out.innerHTML=`<div class="card"><div class="empty"><div class="ico">📭</div><p>No data for ${vendor.name} in this period.</p></div></div>`; return; }
+  const byDate={};
+  vc.forEach(r=>{if(!byDate[r.date])byDate[r.date]={morning:null,evening:null};byDate[r.date][r.session]=r;});
+  const dates=Object.keys(byDate).sort();
+  let tc=0,tb=0,ta=0,mc=0,mb=0,ma=0,ec=0,eb=0,ea=0;
+  vc.forEach(r=>{tc+=r.cowLitres||0;tb+=r.buffaloLitres||0;ta+=r.amount||0;if(r.session==='morning'){mc+=r.cowLitres||0;mb+=r.buffaloLitres||0;ma+=r.amount||0;}else{ec+=r.cowLitres||0;eb+=r.buffaloLitres||0;ea+=r.amount||0;}});
+  const MN=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const cycLbl=cy===0?'Full Month':`Cycle ${cycleName(cy)}`;
+  out.innerHTML=`
+    <div class="card">
+      <div class="card-title"><span>👨‍🌾</span> ${vendor.name} <span style="font-size:12px;color:var(--muted);font-weight:400;">${MN[mo]} ${yr} · ${cycLbl}</span></div>
+      <div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap;"><span class="rate-tag rate-cow">🐄 ₹${vendor.cowRate}/L</span><span class="rate-tag rate-buffalo">🐃 ₹${vendor.buffaloRate}/L</span></div>
+      <div class="report-summary-grid">
+        <div class="report-stat"><div class="rnum" style="color:var(--accent);">₹${ta.toFixed(0)}</div><div class="rlbl">Total Amount</div></div>
+        <div class="report-stat"><div class="rnum" style="color:var(--cow);">${tc.toFixed(1)}L</div><div class="rlbl">🐄 Cow Total</div></div>
+        <div class="report-stat"><div class="rnum" style="color:var(--buffalo);">${tb.toFixed(1)}L</div><div class="rlbl">🐃 Buffalo Total</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="background:rgba(251,191,36,0.07);border:1px solid rgba(251,191,36,0.2);border-radius:var(--radius-sm);padding:12px;"><div style="font-size:11px;font-weight:700;color:var(--morning);margin-bottom:6px;">☀️ MORNING</div><div style="font-size:13px;font-weight:600;">🐄 ${mc.toFixed(1)}L · 🐃 ${mb.toFixed(1)}L</div><div style="font-size:16px;font-weight:800;color:var(--accent);margin-top:4px;">₹${ma.toFixed(0)}</div></div>
+        <div style="background:rgba(129,140,248,0.07);border:1px solid rgba(129,140,248,0.2);border-radius:var(--radius-sm);padding:12px;"><div style="font-size:11px;font-weight:700;color:var(--evening);margin-bottom:6px;">🌙 EVENING</div><div style="font-size:13px;font-weight:600;">🐄 ${ec.toFixed(1)}L · 🐃 ${eb.toFixed(1)}L</div><div style="font-size:16px;font-weight:800;color:var(--accent);margin-top:4px;">₹${ea.toFixed(0)}</div></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span>📅</span> Day-wise Detail</div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
+        <div class="sub-hdr"><div class="day-col dc-date">Date</div><div class="day-col">Session</div><div class="day-col dc-num">🐄L</div><div class="day-col dc-num">🐃L</div><div class="day-col dc-amt">₹ Amt</div></div>
+        ${dates.map(dt=>{const d=byDate[dt];const rows=[];if(d.morning)rows.push({s:'morning',r:d.morning});if(d.evening)rows.push({s:'evening',r:d.evening});return rows.map((it,i)=>`<div class="day-row"><div class="day-col dc-date">${i===0?fmtDate(dt):''}</div><div class="day-col"><span class="badge badge-${it.s}">${it.s==='morning'?'☀️':'🌙'} ${it.s}</span></div><div class="day-col dc-num">${it.r.cowLitres||0}</div><div class="day-col dc-num">${it.r.buffaloLitres||0}</div><div class="day-col dc-amt">₹${(it.r.amount||0).toFixed(0)}</div></div>`).join('');}).join('')}
+        <div class="day-row" style="background:rgba(245,166,35,0.06);border-top:1px solid var(--border);"><div class="day-col dc-date" style="font-weight:800;">TOTAL</div><div class="day-col"></div><div class="day-col dc-num" style="font-weight:700;color:var(--cow);">${tc.toFixed(1)}</div><div class="day-col dc-num" style="font-weight:700;color:var(--buffalo);">${tb.toFixed(1)}</div><div class="day-col dc-amt" style="font-size:15px;">₹${ta.toFixed(0)}</div></div>
+      </div>
+    </div>`;
+}
+
+// =========================================================
+// SECURITY TAB
+// =========================================================
+function renderSecStatus() {
+  const el=document.getElementById('sec-sheet-status');
+  el.innerHTML = sheetUrl
+    ? `<span style="color:var(--green);">✅ Connected to Google Sheets</span><br><span style="font-size:11px;color:var(--muted);word-break:break-all;">${sheetUrl.substring(0,70)}...</span>`
+    : `<span style="color:var(--red);">❌ Not connected — set up Google Sheets sync</span>`;
+}
+
+// =========================================================
+// GOOGLE SHEETS
+// =========================================================
+function updateSyncUI() {
+  const dot=document.getElementById('sync-dot'), lbl=document.getElementById('sync-lbl'), btn=document.getElementById('sync-btn');
+  if (sheetUrl) { dot.className='sync-dot on'; lbl.textContent='🔄 Refresh'; btn.className='sync-btn connected'; }
+  else { dot.className='sync-dot'; lbl.textContent='Setup Sync'; btn.className='sync-btn'; }
+}
+
+function openSettings() {
+  document.getElementById('sheet-url').value=sheetUrl;
+  document.getElementById('conn-status').textContent='';
+  document.getElementById('settings-modal').classList.remove('hidden');
+}
+function closeSettings() { document.getElementById('settings-modal').classList.add('hidden'); }
+
+async function connectSheet() {
+  const url=document.getElementById('sheet-url').value.trim();
+  if (!url) { toast('Enter the Apps Script URL','error'); return; }
+  const btn=document.getElementById('conn-btn'), st=document.getElementById('conn-status');
+  btn.innerHTML='<div class="spinner"></div> Connecting...'; btn.disabled=true;
+  st.textContent='Connecting & loading data from sheet...';
+  try {
+    const r=await fetch(url+'?action=getAll');
+    const d=await r.json();
+    if (d.success!==undefined) {
+      sheetUrl=url; localStorage.setItem('yd_url',sheetUrl);
+      updateSyncUI();
+      await loadSheet(d);
+      st.textContent=`✅ Connected! Loaded ${V.length} vendors, ${C.length} collection records.`;
+      st.style.color='var(--green)';
+      toast('✅ Connected & all data loaded!');
+      setTimeout(closeSettings, 2000);
+    } else throw new Error('Bad response');
+  } catch(err) {
+    st.textContent='❌ Connection failed. Check URL & ensure deployment is set to "Anyone".';
+    st.style.color='var(--red)';
+  }
+  btn.innerHTML='🔗 Connect & Load Data'; btn.disabled=false;
+}
+
+async function pullFromSheet() {
+  if (!sheetUrl) { toast('Not connected','error'); return; }
+  toast('🔄 Refreshing...','success');
+  try {
+    const r=await fetch(sheetUrl+'?action=getAll');
+    const d=await r.json();
+    if (!d.success) throw new Error('Failed');
+    await loadSheet(d);
+    toast('✅ Data refreshed!'); closeSettings();
+  } catch(e) { toast('❌ Refresh failed: '+e.message,'error'); }
+}
+
+async function pull(silent=false) {
+  if (!sheetUrl) return;
+  try {
+    const r = await fetch(sheetUrl+'?action=getAll');
+    if (!r.ok && r.status !== 0) throw new Error('HTTP '+r.status);
+    const d = await r.json();
+    if (!d.success) throw new Error('Sheet returned error');
+    await loadSheet(d);
+  } catch(e) {
+    console.warn('Pull error:', e);
+    if (!silent) toast('❌ Failed to load data. Check internet.','error');
+    else showNoInternetScreen();
+  }
+}
+
+async function loadSheet(d) {
+  // Always replace from sheet — sheet is single source of truth
+  V=[];C=[];P=[];
+  if (d.vendors) d.vendors.forEach(sv=>V.push({id:String(sv.ID),name:sv.Name||'',phone:sv.Phone||'',address:sv.Address||'',cowRate:parseFloat(sv.CowRate)||0,buffaloRate:parseFloat(sv.BuffaloRate)||0}));
+  if (d.collections) d.collections.forEach(sc=>C.push({id:String(sc.ID),date:String(sc.Date).substring(0,10),session:sc.Session||'',vendorId:String(sc.VendorID),vendorName:sc.VendorName||'',cowLitres:parseFloat(sc.CowLitres)||0,buffaloLitres:parseFloat(sc.BuffaloLitres)||0,amount:parseFloat(sc.Amount)||0}));
+  if (d.payments) d.payments.forEach(sp=>P.push({id:String(sp.ID),key:`${sp.VendorID}_${String(sp.CycleStart).substring(0,10)}`,vendorId:String(sp.VendorID),vendorName:sp.VendorName||'',cycleStart:String(sp.CycleStart).substring(0,10),cycleEnd:String(sp.CycleEnd).substring(0,10),grossAmount:parseFloat(sp.GrossAmount)||0,paidAmount:parseFloat(sp.PaidAmount)||0,balance:parseFloat(sp.Balance)||0,cowRate:parseFloat(sp.CowRate)||0,buffaloRate:parseFloat(sp.BuffaloRate)||0,note:sp.Note||''}));
+  renderVList(); renderDash();
+}
+
+async function sync(action, payload) {
+  if (!sheetUrl) return false;
+  try {
+    const body=new FormData();
+    body.append('action',action);
+    body.append('payload',JSON.stringify(payload));
+    await fetch(sheetUrl,{method:'POST',mode:'no-cors',body});
+    return true;
+  } catch(e) { console.warn('Sync failed:',e); return false; }
+}
+
+function disconnectSheet() {
+  if (!confirm('Disconnect from Google Sheets?\nData will not be accessible until reconnected.')) return;
+  sheetUrl=''; localStorage.removeItem('yd_url');
+  V=[];C=[];P=[];
+  updateSyncUI(); closeSettings(); renderDash(); renderVList();
+  toast('Disconnected');
+}
+
+// =========================================================
+// START
+// =========================================================
+initLogin();
+</script>
+</body>
+</html>
