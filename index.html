@@ -1097,9 +1097,21 @@ async function confirmPay() {
   const v=V.find(x=>x.id===vid);
   const paidAmt=parseFloat(document.getElementById('pay-amt').value)||0;
   const note=document.getElementById('pay-mode').value;
-  const pk=`${vid}_${cs}`;
-  const vc=C.filter(r=>r.vendorId===vid&&r.date>=cs&&r.date<=ce);
-  const po={id:uid(),key:pk,vendorId:vid,vendorName:v.name,cycleStart:cs,cycleEnd:ce,totalCowL:vc.reduce((a,r)=>a+(r.cowLitres||0),0),totalBuffaloL:vc.reduce((a,r)=>a+(r.buffaloLitres||0),0),cowRate:v.cowRate,buffaloRate:v.buffaloRate,grossAmount:gross,paidAmount:paidAmt,balance:gross-paidAmt,note,paidAt:new Date().toISOString()};
+  // Ensure cs is always YYYY-MM-DD (no time component)
+  const csClean = String(cs).substring(0,10);
+  const ceClean = String(ce).substring(0,10);
+  const pk=`${vid}_${csClean}`;
+  const vc=C.filter(r=>r.vendorId===vid&&r.date>=csClean&&r.date<=ceClean);
+  const po={
+    id:uid(), key:pk, vendorId:vid, vendorName:v.name,
+    cycleStart:csClean, cycleEnd:ceClean,
+    totalCowL:vc.reduce((a,r)=>a+(r.cowLitres||0),0),
+    totalBuffaloL:vc.reduce((a,r)=>a+(r.buffaloLitres||0),0),
+    cowRate:v.cowRate, buffaloRate:v.buffaloRate,
+    grossAmount:gross, paidAmount:paidAmt,
+    balance:gross-paidAmt, note,
+    paidAt:new Date().toISOString()
+  };
   P=P.filter(p=>p.key!==pk); P.push(po);
   closePay(); renderPay();
   const ok=await sync('savePayment',{payment:po});
@@ -1543,9 +1555,53 @@ async function pull(silent=false) {
 async function loadSheet(d) {
   // Always replace from sheet — sheet is single source of truth
   V=[];C=[];P=[];
-  if (d.vendors) d.vendors.forEach(sv=>V.push({id:String(sv.ID),name:sv.Name||'',phone:sv.Phone||'',address:sv.Address||'',cowRate:parseFloat(sv.CowRate)||0,buffaloRate:parseFloat(sv.BuffaloRate)||0}));
-  if (d.collections) d.collections.forEach(sc=>C.push({id:String(sc.ID),date:String(sc.Date).substring(0,10),session:sc.Session||'',vendorId:String(sc.VendorID),vendorName:sc.VendorName||'',cowLitres:parseFloat(sc.CowLitres)||0,buffaloLitres:parseFloat(sc.BuffaloLitres)||0,amount:parseFloat(sc.Amount)||0}));
-  if (d.payments) d.payments.forEach(sp=>P.push({id:String(sp.ID),key:`${sp.VendorID}_${String(sp.CycleStart).substring(0,10)}`,vendorId:String(sp.VendorID),vendorName:sp.VendorName||'',cycleStart:String(sp.CycleStart).substring(0,10),cycleEnd:String(sp.CycleEnd).substring(0,10),grossAmount:parseFloat(sp.GrossAmount)||0,paidAmount:parseFloat(sp.PaidAmount)||0,balance:parseFloat(sp.Balance)||0,cowRate:parseFloat(sp.CowRate)||0,buffaloRate:parseFloat(sp.BuffaloRate)||0,note:sp.Note||''}));
+  if (d.vendors) d.vendors.forEach(sv=>V.push({
+    id:String(sv.ID).trim(),
+    name:sv.Name||'',
+    phone:sv.Phone||'',
+    address:sv.Address||'',
+    cowRate:parseFloat(sv.CowRate)||0,
+    buffaloRate:parseFloat(sv.BuffaloRate)||0
+  }));
+  if (d.collections) d.collections.forEach(sc=>{
+    // Google Sheets may return date as "2025-02-01T00:00:00.000Z" or "2025-02-01" — normalize
+    const rawDate = String(sc.Date||'');
+    const date = rawDate.includes('T') ? rawDate.substring(0,10) : rawDate.substring(0,10);
+    C.push({
+      id:String(sc.ID).trim(),
+      date,
+      session:String(sc.Session||'').toLowerCase().trim(),
+      vendorId:String(sc.VendorID).trim(),
+      vendorName:sc.VendorName||'',
+      cowLitres:parseFloat(sc.CowLitres)||0,
+      buffaloLitres:parseFloat(sc.BuffaloLitres)||0,
+      cowRate:parseFloat(sc.CowRate)||0,
+      buffaloRate:parseFloat(sc.BuffaloRate)||0,
+      amount:parseFloat(sc.Amount)||0
+    });
+  });
+  if (d.payments) d.payments.forEach(sp=>{
+    // Normalize CycleStart date — Google Sheets may return as datetime
+    const rawCS = String(sp.CycleStart||'');
+    const rawCE = String(sp.CycleEnd||'');
+    const cs = rawCS.includes('T') ? rawCS.substring(0,10) : rawCS.substring(0,10);
+    const ce = rawCE.includes('T') ? rawCE.substring(0,10) : rawCE.substring(0,10);
+    const vid = String(sp.VendorID).trim();
+    P.push({
+      id:String(sp.ID).trim(),
+      key:`${vid}_${cs}`,
+      vendorId:vid,
+      vendorName:sp.VendorName||'',
+      cycleStart:cs,
+      cycleEnd:ce,
+      grossAmount:parseFloat(sp.GrossAmount)||0,
+      paidAmount:parseFloat(sp.PaidAmount)||0,
+      balance:parseFloat(sp.Balance)||0,
+      cowRate:parseFloat(sp.CowRate)||0,
+      buffaloRate:parseFloat(sp.BuffaloRate)||0,
+      note:sp.Note||''
+    });
+  });
   renderVList(); renderDash();
 }
 
