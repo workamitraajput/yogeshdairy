@@ -368,20 +368,60 @@ code { background: var(--surface2); border: 1px solid var(--border); padding: 2p
 
 <!-- COLLECTION -->
 <div class="section" id="tab-collection">
-  <div class="card">
-    <div class="form-row" style="align-items:flex-end;margin-bottom:12px;">
-      <div class="form-group" style="max-width:170px;"><label>Date</label><input type="date" id="col-date" onchange="renderColl()"></div>
+
+  <!-- STEP 1: Date + Session -->
+  <div class="card" id="coll-step1">
+    <div class="card-title"><span>1️⃣</span> Select Date & Session</div>
+    <div class="form-row" style="align-items:flex-end;margin-bottom:16px;">
+      <div class="form-group" style="max-width:180px;"><label>Date</label><input type="date" id="col-date" onchange="collDateChanged()"></div>
       <div id="col-cycle" class="cycle-badge" style="margin-bottom:0;">📅 Cycle</div>
     </div>
     <div class="session-toggle">
-      <button class="sess-btn morning active" id="sess-m" onclick="setSess('morning')">☀️ Morning</button>
-      <button class="sess-btn evening" id="sess-e" onclick="setSess('evening')">🌙 Evening</button>
-    </div>
-    <div id="coll-entries"><div class="empty"><div class="ico">👨‍🌾</div><p>Add vendors first.</p></div></div>
-    <div id="coll-save" style="display:none;margin-top:12px;">
-      <button class="btn btn-green btn-block" onclick="saveColl()">💾 Save Collection</button>
+      <button class="sess-btn morning" id="sess-m" onclick="collSelectSess('morning')">☀️ Morning</button>
+      <button class="sess-btn evening" id="sess-e" onclick="collSelectSess('evening')">🌙 Evening</button>
     </div>
   </div>
+
+  <!-- STEP 2: Select Vendor -->
+  <div class="card hidden" id="coll-step2">
+    <div class="card-title">
+      <span>2️⃣</span> Select Vendor
+      <span id="coll-sess-badge" style="margin-left:auto;font-size:12px;font-weight:600;"></span>
+    </div>
+    <div id="coll-vendor-list"></div>
+  </div>
+
+  <!-- STEP 3: Enter Qty -->
+  <div class="card hidden" id="coll-step3">
+    <div class="card-title">
+      <span>3️⃣</span> Enter Milk Quantity
+      <button onclick="collBack()" style="margin-left:auto;background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:'Sora',sans-serif;">← Back</button>
+    </div>
+    <div id="coll-vendor-info" style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:16px;display:flex;align-items:center;gap:12px;">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>🐄 Cow Milk (Litres)</label>
+        <div class="milk-input-wrap">
+          <input type="number" id="coll-cow" min="0" step="0.1" placeholder="0.0" oninput="collCalcAmt()">
+          <span class="milk-unit">L</span>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>🐃 Buffalo Milk (Litres)</label>
+        <div class="milk-input-wrap">
+          <input type="number" id="coll-buf" min="0" step="0.1" placeholder="0.0" oninput="collCalcAmt()">
+          <span class="milk-unit">L</span>
+        </div>
+      </div>
+    </div>
+    <div id="coll-amt-preview" style="background:rgba(245,166,35,0.08);border:1px solid rgba(245,166,35,0.25);border-radius:var(--radius-sm);padding:12px 16px;margin-bottom:16px;font-size:15px;font-weight:800;color:var(--accent);display:none;"></div>
+    <button class="btn btn-green btn-block" onclick="collSubmit()">💾 Save Entry</button>
+  </div>
+
+  <!-- Today's entries for this session -->
+  <div id="coll-done-list"></div>
+
 </div>
 
 <!-- PAYMENTS -->
@@ -741,7 +781,7 @@ function switchTab(t, btn) {
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+t).classList.add('active');
   btn.classList.add('active');
-  if (t==='collection') { initCollDate(); renderColl(); }
+  if (t==='collection') { initCollDate(); }
   if (t==='payments') renderPay();
   if (t==='records') { updRecSel(); renderRec(); }
   if (t==='dashboard') renderDash();
@@ -829,88 +869,181 @@ function renderVList() {
 }
 
 // =========================================================
-// COLLECTION
+// COLLECTION — Step-by-step flow
 // =========================================================
-function initCollDate() { if (!document.getElementById('col-date').value) document.getElementById('col-date').value = toDay(); }
-function setSess(s) {
+let collSelVendorId = null; // currently selected vendor in step 3
+
+function initCollDate() {
+  if (!document.getElementById('col-date').value) document.getElementById('col-date').value = toDay();
+  collDateChanged();
+}
+
+function collDateChanged() {
+  const date = document.getElementById('col-date').value || toDay();
+  document.getElementById('col-date').value = date;
+  document.getElementById('col-cycle').textContent = `📅 Cycle ${cycleName(cycleFor(date))}`;
+  // Reset to step 1 when date changes
+  sess = '';
+  document.getElementById('sess-m').classList.remove('active');
+  document.getElementById('sess-e').classList.remove('active');
+  document.getElementById('coll-step2').classList.add('hidden');
+  document.getElementById('coll-step3').classList.add('hidden');
+  collRenderDone();
+}
+
+function collSelectSess(s) {
+  if (!document.getElementById('col-date').value) {
+    document.getElementById('col-date').value = toDay();
+    collDateChanged();
+  }
   sess = s;
   document.getElementById('sess-m').classList.toggle('active', s==='morning');
   document.getElementById('sess-e').classList.toggle('active', s==='evening');
-  renderColl();
+  // Show step 2
+  document.getElementById('coll-step2').classList.remove('hidden');
+  document.getElementById('coll-step3').classList.add('hidden');
+  collSelVendorId = null;
+  // Update badge
+  document.getElementById('coll-sess-badge').innerHTML =
+    s === 'morning'
+      ? '<span class="badge badge-morning">☀️ Morning</span>'
+      : '<span class="badge badge-evening">🌙 Evening</span>';
+  collRenderVendorList();
+  collRenderDone();
+  // Smooth scroll to step 2
+  setTimeout(() => document.getElementById('coll-step2').scrollIntoView({behavior:'smooth', block:'nearest'}), 100);
 }
 
-function renderColl() {
-  const dateEl = document.getElementById('col-date');
-  if (!dateEl.value) dateEl.value = toDay();
-  const date = dateEl.value;
-  document.getElementById('col-cycle').textContent = `📅 Cycle ${cycleName(cycleFor(date))}`;
-  const wrap = document.getElementById('coll-entries');
-  const saveBtn = document.getElementById('coll-save');
-  if (!V.length) { wrap.innerHTML = '<div class="empty"><div class="ico">👨‍🌾</div><p>Add vendors first.</p></div>'; saveBtn.style.display='none'; return; }
-
+function collRenderVendorList() {
+  const date = document.getElementById('col-date').value;
+  const el = document.getElementById('coll-vendor-list');
+  if (!V.length) { el.innerHTML = '<div class="empty"><div class="ico">👨‍🌾</div><p>No vendors added yet.</p></div>'; return; }
   const saved = {};
-  C.filter(r=>r.date===date && r.session===sess).forEach(r=>{saved[r.vendorId]=r;});
-
-  let anyNew = false;
-  wrap.innerHTML = V.map(v => {
+  C.filter(r => r.date === date && r.session === sess).forEach(r => { saved[r.vendorId] = r; });
+  el.innerHTML = V.map(v => {
     const ex = saved[v.id];
     if (ex) {
-      return `<div class="vendor-entry locked">
-        <div class="vendor-entry-header">
-          <span style="width:26px;height:26px;background:var(--surface);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">${v.name[0].toUpperCase()}</span>
-          ${v.name} <span class="locked-badge">✅ Saved</span>
+      return `<div class="vendor-item" style="opacity:0.6;cursor:default;">
+        <div class="vendor-avatar" style="background:var(--green);color:#001a10;">${v.name[0].toUpperCase()}</div>
+        <div class="vendor-info">
+          <div class="vendor-name">${v.name}</div>
+          <div class="vendor-meta"><span style="color:var(--green);">✅ Saved — 🐄${ex.cowLitres||0}L 🐃${ex.buffaloLitres||0}L · ₹${(ex.amount||0).toFixed(0)}</span></div>
         </div>
-        <div class="entry-fields">
-          <div class="entry-field"><label>🐄 Cow Milk</label><div class="saved-val">${ex.cowLitres||0} L</div></div>
-          <div class="entry-field"><label>🐃 Buffalo Milk</label><div class="saved-val">${ex.buffaloLitres||0} L</div></div>
-          <div class="entry-field"><label>Amount</label><div class="saved-val">₹${(ex.amount||0).toFixed(0)}</div></div>
-        </div>
+        <span class="locked-badge">Done</span>
       </div>`;
     }
-    anyNew = true;
-    return `<div class="vendor-entry">
-      <div class="vendor-entry-header">
-        <span style="width:26px;height:26px;background:var(--surface);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;">${v.name[0].toUpperCase()}</span>
-        ${v.name}
-        <span class="rate-tag rate-cow" style="margin-left:auto;">🐄₹${v.cowRate}</span>
-        <span class="rate-tag rate-buffalo">🐃₹${v.buffaloRate}</span>
+    return `<div class="vendor-item" style="cursor:pointer;" onclick="collSelectVendor('${v.id}')">
+      <div class="vendor-avatar">${v.name[0].toUpperCase()}</div>
+      <div class="vendor-info">
+        <div class="vendor-name">${v.name}</div>
+        <div class="vendor-meta" style="margin-top:4px;display:flex;gap:6px;">
+          <span class="rate-tag rate-cow">🐄 ₹${v.cowRate}/L</span>
+          <span class="rate-tag rate-buffalo">🐃 ₹${v.buffaloRate}/L</span>
+        </div>
       </div>
-      <div class="entry-fields">
-        <div class="entry-field"><label>🐄 Cow (L)</label><div class="milk-input-wrap"><input type="number" id="c${v.id}" min="0" step="0.1" placeholder="0.0" oninput="calcAmt('${v.id}')"><span class="milk-unit">L</span></div></div>
-        <div class="entry-field"><label>🐃 Buffalo (L)</label><div class="milk-input-wrap"><input type="number" id="b${v.id}" min="0" step="0.1" placeholder="0.0" oninput="calcAmt('${v.id}')"><span class="milk-unit">L</span></div></div>
-        <div class="entry-field"><label>Amount ₹</label><div id="a${v.id}" style="padding:10px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-weight:700;color:var(--accent);">—</div></div>
-      </div>
+      <span style="color:var(--accent);font-size:18px;">›</span>
     </div>`;
   }).join('');
-  saveBtn.style.display = anyNew ? 'block' : 'none';
 }
 
-function calcAmt(vid) {
-  const v = V.find(x=>x.id===vid); if (!v) return;
-  const cow = parseFloat(document.getElementById('c'+vid)?.value)||0;
-  const buf = parseFloat(document.getElementById('b'+vid)?.value)||0;
-  const el = document.getElementById('a'+vid);
-  if (el) el.textContent = (cow||buf) ? '₹'+((cow*v.cowRate)+(buf*v.buffaloRate)).toFixed(2) : '—';
+function collSelectVendor(vid) {
+  collSelVendorId = vid;
+  const v = V.find(x => x.id === vid); if (!v) return;
+  // Show step 3
+  document.getElementById('coll-step3').classList.remove('hidden');
+  // Fill vendor info
+  document.getElementById('coll-vendor-info').innerHTML = `
+    <div class="vendor-avatar" style="width:36px;height:36px;font-size:14px;flex-shrink:0;">${v.name[0].toUpperCase()}</div>
+    <div>
+      <div style="font-weight:800;font-size:15px;">${v.name}</div>
+      <div style="display:flex;gap:6px;margin-top:4px;flex-wrap:wrap;">
+        <span class="rate-tag rate-cow">🐄 ₹${v.cowRate}/L</span>
+        <span class="rate-tag rate-buffalo">🐃 ₹${v.buffaloRate}/L</span>
+      </div>
+    </div>`;
+  // Clear inputs
+  document.getElementById('coll-cow').value = '';
+  document.getElementById('coll-buf').value = '';
+  document.getElementById('coll-amt-preview').style.display = 'none';
+  document.getElementById('coll-amt-preview').textContent = '';
+  setTimeout(() => document.getElementById('coll-step3').scrollIntoView({behavior:'smooth', block:'nearest'}), 100);
+  document.getElementById('coll-cow').focus();
 }
 
-async function saveColl() {
+function collBack() {
+  document.getElementById('coll-step3').classList.add('hidden');
+  collSelVendorId = null;
+}
+
+function collCalcAmt() {
+  if (!collSelVendorId) return;
+  const v = V.find(x => x.id === collSelVendorId); if (!v) return;
+  const cow = parseFloat(document.getElementById('coll-cow').value) || 0;
+  const buf = parseFloat(document.getElementById('coll-buf').value) || 0;
+  const preview = document.getElementById('coll-amt-preview');
+  if (cow > 0 || buf > 0) {
+    const amt = (cow * v.cowRate) + (buf * v.buffaloRate);
+    preview.style.display = 'block';
+    preview.innerHTML = `
+      💰 Amount: ₹${amt.toFixed(2)}
+      <span style="font-size:12px;font-weight:400;color:var(--muted);margin-left:8px;">
+        ${cow>0?`🐄${cow}L×₹${v.cowRate}=₹${(cow*v.cowRate).toFixed(0)}`:''}
+        ${cow>0&&buf>0?' + ':''}
+        ${buf>0?`🐃${buf}L×₹${v.buffaloRate}=₹${(buf*v.buffaloRate).toFixed(0)}`:''}
+      </span>`;
+  } else {
+    preview.style.display = 'none';
+  }
+}
+
+async function collSubmit() {
+  if (!collSelVendorId) return;
   const date = document.getElementById('col-date').value;
-  if (!date) { toast('Select date', 'error'); return; }
+  if (!date) { toast('Select date first', 'error'); return; }
   if (!sheetUrl) { toast('Connect to Google Sheets first!', 'error'); return; }
-  const savedMap = {};
-  C.filter(r=>r.date===date&&r.session===sess).forEach(r=>{savedMap[r.vendorId]=true;});
-  const recs = [];
-  V.forEach(v => {
-    if (savedMap[v.id]) return;
-    const cow = parseFloat(document.getElementById('c'+v.id)?.value)||0;
-    const buf = parseFloat(document.getElementById('b'+v.id)?.value)||0;
-    if (cow>0||buf>0) recs.push({id:uid(), date, session:sess, vendorId:v.id, vendorName:v.name, cowLitres:cow, buffaloLitres:buf, cowRate:v.cowRate, buffaloRate:v.buffaloRate, amount:(cow*v.cowRate)+(buf*v.buffaloRate)});
-  });
-  if (!recs.length) { toast('No new entries to save', 'error'); return; }
-  recs.forEach(r=>C.push(r)); renderColl();
-  const ok = await sync('saveCollection', {records:recs});
-  if (ok) { toast(`✅ ${recs.length} entr${recs.length>1?'ies':'y'} saved!`); renderDash(); }
-  else { recs.forEach(r=>{C=C.filter(c=>c.id!==r.id);}); renderColl(); toast('❌ Failed to save. Check connection.', 'error'); }
+  const v = V.find(x => x.id === collSelVendorId); if (!v) return;
+  const cow = parseFloat(document.getElementById('coll-cow').value) || 0;
+  const buf = parseFloat(document.getElementById('coll-buf').value) || 0;
+  if (cow <= 0 && buf <= 0) { toast('Enter at least cow or buffalo qty', 'error'); return; }
+  // Check already saved
+  const alreadySaved = C.find(r => r.date === date && r.session === sess && r.vendorId === collSelVendorId);
+  if (alreadySaved) { toast('Entry already saved for this vendor', 'error'); return; }
+  const rec = { id: uid(), date, session: sess, vendorId: v.id, vendorName: v.name, cowLitres: cow, buffaloLitres: buf, cowRate: v.cowRate, buffaloRate: v.buffaloRate, amount: (cow*v.cowRate)+(buf*v.buffaloRate) };
+  C.push(rec);
+  // Hide step 3, refresh vendor list
+  document.getElementById('coll-step3').classList.add('hidden');
+  collSelVendorId = null;
+  collRenderVendorList();
+  collRenderDone();
+  renderDash();
+  const ok = await sync('saveCollection', { records: [rec] });
+  if (ok) { toast(`✅ ${v.name} saved — ₹${rec.amount.toFixed(0)}`); }
+  else { C = C.filter(c => c.id !== rec.id); collRenderVendorList(); collRenderDone(); toast('❌ Failed to save. Check connection.', 'error'); }
+}
+
+function collRenderDone() {
+  const date = document.getElementById('col-date').value || toDay();
+  const el = document.getElementById('coll-done-list');
+  if (!sess) { el.innerHTML = ''; return; }
+  const done = C.filter(r => r.date === date && r.session === sess);
+  if (!done.length) { el.innerHTML = ''; return; }
+  const total = done.reduce((a,r) => a+(r.amount||0), 0);
+  el.innerHTML = `<div class="card">
+    <div class="card-title"><span>${sess==='morning'?'☀️':'🌙'}</span> ${sess==='morning'?'Morning':'Evening'} Entries — ${fmtDate(date)}
+      <span style="margin-left:auto;font-size:13px;color:var(--accent);">₹${total.toFixed(0)}</span>
+    </div>
+    ${done.map(r => `<div class="vendor-entry locked" style="margin-bottom:8px;">
+      <div class="vendor-entry-header">
+        <span style="width:24px;height:24px;background:var(--green);border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;color:#001a10;">${r.vendorName[0].toUpperCase()}</span>
+        ${r.vendorName} <span class="locked-badge">✅ Saved</span>
+      </div>
+      <div class="entry-fields">
+        <div class="entry-field"><label>🐄 Cow</label><div class="saved-val">${r.cowLitres||0} L</div></div>
+        <div class="entry-field"><label>🐃 Buffalo</label><div class="saved-val">${r.buffaloLitres||0} L</div></div>
+        <div class="entry-field"><label>Amount</label><div class="saved-val">₹${(r.amount||0).toFixed(0)}</div></div>
+      </div>
+    </div>`).join('')}
+  </div>`;
 }
 
 // =========================================================
