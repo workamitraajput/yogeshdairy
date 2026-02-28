@@ -180,6 +180,31 @@ code { background: var(--surface2); border: 1px solid var(--border); padding: 2p
 .sec-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
 .sec-text strong { color: var(--text); display: block; margin-bottom: 3px; font-size: 14px; }
 .sec-text span { color: var(--muted); font-size: 12px; line-height: 1.5; }
+
+/* ROLE */
+.role-btn { display:flex; align-items:center; gap:14px; width:100%; padding:14px 18px; border-radius:var(--radius-sm); border:1px solid var(--border); background:var(--surface2); color:var(--text); font-family:'Sora',sans-serif; cursor:pointer; transition:all 0.2s; text-align:left; }
+.role-btn:hover { border-color:var(--accent); background:rgba(245,166,35,0.08); }
+.role-badge { display:inline-flex; align-items:center; gap:5px; padding:3px 10px; border-radius:20px; font-size:11px; font-weight:700; }
+.role-manager { background:rgba(245,166,35,0.15); color:var(--accent); border:1px solid rgba(245,166,35,0.3); }
+.role-operator { background:rgba(96,165,250,0.15); color:var(--blue); border:1px solid rgba(96,165,250,0.3); }
+
+/* OUTSTANDING */
+.os-card { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); margin-bottom:10px; overflow:hidden; }
+.os-header { display:flex; align-items:center; gap:12px; padding:13px 15px; cursor:pointer; }
+.os-header:hover { background:rgba(255,255,255,0.02); }
+.os-debit { color:var(--morning); } /* we owe vendor */
+.os-credit { color:var(--green); }  /* vendor overpaid / advance */
+.os-zero { color:var(--muted); }
+.os-body { padding:0 15px 14px; border-top:1px solid var(--border); }
+.ledger-row { display:flex; justify-content:space-between; align-items:center; padding:7px 0; border-bottom:1px solid rgba(255,255,255,0.04); font-size:12px; }
+.ledger-row:last-child { border-bottom:none; }
+.ledger-cycle { font-weight:700; font-size:11px; color:var(--muted); }
+.ledger-val { font-weight:700; text-align:right; }
+.ledger-total-row { display:flex; justify-content:space-between; align-items:center; padding:9px 12px; background:rgba(245,166,35,0.06); border-top:2px solid var(--border); font-size:13px; font-weight:800; border-radius:0 0 var(--radius-sm) var(--radius-sm); }
+.summary-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
+.summary-box { background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:12px; text-align:center; }
+.summary-box .snum { font-size:18px; font-weight:800; }
+.summary-box .slbl { font-size:10px; color:var(--muted); margin-top:3px; }
 </style>
 </head>
 <body>
@@ -189,26 +214,45 @@ code { background: var(--surface2); border: 1px solid var(--border); padding: 2p
   <div class="login-box">
     <div class="login-logo">🐄</div>
     <h2>Yogesh Dairy</h2>
-    <p id="login-sub">Enter your PIN to continue</p>
-    <div class="pin-dots">
-      <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
-      <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+
+    <!-- Step 1: Role Selection -->
+    <div id="role-step">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Select your role to continue</p>
+      <div style="display:flex;flex-direction:column;gap:10px;max-width:240px;margin:0 auto;">
+        <button class="role-btn" onclick="selectRole('manager')">
+          <span style="font-size:22px;">👔</span>
+          <div><div style="font-weight:800;font-size:15px;">Manager</div><div style="font-size:11px;opacity:0.7;">Full access</div></div>
+        </button>
+        <button class="role-btn" onclick="selectRole('operator')">
+          <span style="font-size:22px;">👷</span>
+          <div><div style="font-weight:800;font-size:15px;">Operator</div><div style="font-size:11px;opacity:0.7;">Collection entry only</div></div>
+        </button>
+      </div>
     </div>
-    <div class="pin-keypad">
-      <button class="pin-key" onclick="pp('1')">1</button>
-      <button class="pin-key" onclick="pp('2')">2</button>
-      <button class="pin-key" onclick="pp('3')">3</button>
-      <button class="pin-key" onclick="pp('4')">4</button>
-      <button class="pin-key" onclick="pp('5')">5</button>
-      <button class="pin-key" onclick="pp('6')">6</button>
-      <button class="pin-key" onclick="pp('7')">7</button>
-      <button class="pin-key" onclick="pp('8')">8</button>
-      <button class="pin-key" onclick="pp('9')">9</button>
-      <button class="pin-key zero" onclick="pp('0')">0</button>
-      <button class="pin-key del" onclick="pd()">⌫</button>
+
+    <!-- Step 2: PIN Entry -->
+    <div id="pin-step" class="hidden">
+      <p id="login-sub" style="font-size:13px;color:var(--muted);margin-bottom:20px;"></p>
+      <div class="pin-dots">
+        <div class="pin-dot" id="d0"></div><div class="pin-dot" id="d1"></div>
+        <div class="pin-dot" id="d2"></div><div class="pin-dot" id="d3"></div>
+      </div>
+      <div class="pin-keypad">
+        <button class="pin-key" onclick="pp('1')">1</button>
+        <button class="pin-key" onclick="pp('2')">2</button>
+        <button class="pin-key" onclick="pp('3')">3</button>
+        <button class="pin-key" onclick="pp('4')">4</button>
+        <button class="pin-key" onclick="pp('5')">5</button>
+        <button class="pin-key" onclick="pp('6')">6</button>
+        <button class="pin-key" onclick="pp('7')">7</button>
+        <button class="pin-key" onclick="pp('8')">8</button>
+        <button class="pin-key" onclick="pp('9')">9</button>
+        <button class="pin-key zero" onclick="pp('0')">0</button>
+        <button class="pin-key del" onclick="pd()">⌫</button>
+      </div>
+      <div class="pin-error" id="pin-err"></div>
+      <button onclick="backToRoles()" style="margin-top:14px;background:none;border:none;color:var(--muted);font-size:12px;cursor:pointer;font-family:'Sora',sans-serif;">← Back</button>
     </div>
-    <div class="pin-error" id="pin-err"></div>
-    <div class="pin-hint" id="pin-hint"></div>
   </div>
 </div>
 
@@ -218,6 +262,7 @@ code { background: var(--surface2); border: 1px solid var(--border); padding: 2p
   <div class="header-left">
     <div class="logo-box">🐄</div>
     <div><h1>Yogesh Dairy</h1><p id="hdate"></p></div>
+    <span id="role-badge" class="role-badge role-manager" style="margin-left:4px;">👔 Manager</span>
   </div>
   <div class="header-actions">
     <button class="sync-btn" id="sync-btn" onclick="openSettings()">
@@ -229,12 +274,12 @@ code { background: var(--surface2); border: 1px solid var(--border); padding: 2p
 </header>
 
 <div class="tabs">
-  <button class="tab-btn active" onclick="switchTab('dashboard',this)">📊 Dashboard</button>
-  <button class="tab-btn" onclick="switchTab('vendors',this)">👨‍🌾 Vendors</button>
-  <button class="tab-btn" onclick="switchTab('collection',this)">🥛 Collection</button>
-  <button class="tab-btn" onclick="switchTab('payments',this)">💰 Payments</button>
-  <button class="tab-btn" onclick="switchTab('records',this)">📋 Records</button>
-  <button class="tab-btn" onclick="switchTab('security',this)">🔐 Security</button>
+  <button class="tab-btn active" id="tab-btn-dashboard" onclick="switchTab('dashboard',this)">📊 Dashboard</button>
+  <button class="tab-btn" id="tab-btn-vendors" onclick="switchTab('vendors',this)">👨‍🌾 Vendors</button>
+  <button class="tab-btn" id="tab-btn-collection" onclick="switchTab('collection',this)">🥛 Collection</button>
+  <button class="tab-btn" id="tab-btn-payments" onclick="switchTab('payments',this)">💰 Payments</button>
+  <button class="tab-btn" id="tab-btn-records" onclick="switchTab('records',this)">📋 Records</button>
+  <button class="tab-btn" id="tab-btn-security" onclick="switchTab('security',this)">🔐 Security</button>
 </div>
 
 <main>
@@ -247,9 +292,10 @@ code { background: var(--surface2); border: 1px solid var(--border); padding: 2p
 <!-- VENDORS -->
 <div class="section" id="tab-vendors">
   <div class="sub-tabs">
-    <button class="sub-tab-btn active" id="vs-list-btn" onclick="vSub('list')">👨‍🌾 Vendor List</button>
-    <button class="sub-tab-btn" id="vs-add-btn" onclick="vSub('add')">➕ Add Vendor</button>
+    <button class="sub-tab-btn active" id="vs-list-btn" onclick="vSub('list')">👨‍🌾 List</button>
+    <button class="sub-tab-btn" id="vs-add-btn" onclick="vSub('add')">➕ Add</button>
     <button class="sub-tab-btn" id="vs-report-btn" onclick="vSub('report')">📊 Report</button>
+    <button class="sub-tab-btn" id="vs-outstanding-btn" onclick="vSub('outstanding')">⚖️ Outstanding</button>
   </div>
   <div id="vs-list">
     <div class="card">
@@ -289,6 +335,34 @@ code { background: var(--surface2); border: 1px solid var(--border); padding: 2p
       </div>
     </div>
     <div id="report-out"></div>
+  </div>
+
+  <!-- OUTSTANDING SECTION -->
+  <div id="vs-outstanding" class="hidden">
+    <div class="card">
+      <div class="card-title"><span>⚖️</span> Outstanding Balances</div>
+      <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">
+        Auto carry-forward: unpaid balance from previous cycles is added as opening balance. Advance payments reduce next cycle's dues.
+      </p>
+      <!-- View toggle -->
+      <div style="display:flex;gap:6px;margin-bottom:16px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px;">
+        <button id="os-all-btn" class="sub-tab-btn active" onclick="osView('all')">👥 All Vendors</button>
+        <button id="os-single-btn" class="sub-tab-btn" onclick="osView('single')">👤 Per Vendor</button>
+      </div>
+      <!-- Filter row -->
+      <div class="form-row" style="margin-bottom:0;">
+        <div class="form-group"><label>Month</label>
+          <select id="os-mo" onchange="renderOutstanding()"><option value="0">January</option><option value="1">February</option><option value="2">March</option><option value="3">April</option><option value="4">May</option><option value="5">June</option><option value="6">July</option><option value="7">August</option><option value="8">September</option><option value="9">October</option><option value="10">November</option><option value="11">December</option></select>
+        </div>
+        <div class="form-group"><label>Year</label>
+          <input type="number" id="os-yr" value="2025" onchange="renderOutstanding()">
+        </div>
+        <div class="form-group os-single-only hidden"><label>Vendor</label>
+          <select id="os-vid" onchange="renderOutstanding()"><option value="">Select Vendor</option></select>
+        </div>
+      </div>
+    </div>
+    <div id="outstanding-out"></div>
   </div>
 </div>
 
@@ -348,15 +422,27 @@ code { background: var(--surface2); border: 1px solid var(--border); padding: 2p
     <div class="sec-item"><div class="sec-icon">🔒</div><div class="sec-text"><strong>No Edit / No Delete</strong><span>Collection entries cannot be edited or deleted once saved — prevents accidental data tampering.</span></div></div>
     <div class="sec-item"><div class="sec-icon">✏️</div><div class="sec-text"><strong>Rate-Only Updates</strong><span>Only milk rates (₹/L) can be updated on vendor profiles, as rates change each 10-day cycle.</span></div></div>
     <div class="sec-item"><div class="sec-icon">📱</div><div class="sec-text"><strong>Multi-Device Access</strong><span>Open on any phone or computer — always fetches fresh data from Google Sheets on every login.</span></div></div>
+    <div class="sec-item"><div class="sec-icon">👥</div><div class="sec-text"><strong>Two Roles</strong><span>Manager: full access. Operator: collection entry only. Each has a separate PIN.<div id="sec-pin-info"></div></span></div></div>
   </div>
   <div class="card">
-    <div class="card-title"><span>🔑</span> Change PIN</div>
+    <div class="card-title"><span>🔑</span> Change Manager PIN</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Default: 1234</p>
     <div class="form-row">
       <div class="form-group"><label>Current PIN</label><input type="password" id="op" maxlength="4" placeholder="••••" inputmode="numeric"></div>
       <div class="form-group"><label>New PIN</label><input type="password" id="np" maxlength="4" placeholder="••••" inputmode="numeric"></div>
       <div class="form-group"><label>Confirm PIN</label><input type="password" id="cp" maxlength="4" placeholder="••••" inputmode="numeric"></div>
     </div>
-    <button class="btn btn-primary" onclick="changePin()">🔑 Update PIN</button>
+    <button class="btn btn-primary" onclick="changePin()">🔑 Update Manager PIN</button>
+  </div>
+  <div class="card">
+    <div class="card-title"><span>👷</span> Change Operator PIN</div>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Default: 5678 — Operator can only enter milk collection</p>
+    <div class="form-row">
+      <div class="form-group"><label>Manager PIN (to authorize)</label><input type="password" id="op-auth" maxlength="4" placeholder="••••" inputmode="numeric"></div>
+      <div class="form-group"><label>New Operator PIN</label><input type="password" id="op-np" maxlength="4" placeholder="••••" inputmode="numeric"></div>
+      <div class="form-group"><label>Confirm PIN</label><input type="password" id="op-cp" maxlength="4" placeholder="••••" inputmode="numeric"></div>
+    </div>
+    <button class="btn btn-primary" onclick="changeOperatorPin()">🔑 Update Operator PIN</button>
   </div>
   <div class="card">
     <div class="card-title"><span>☁️</span> Sheet Connection</div>
@@ -451,17 +537,42 @@ let lockTimer = null;
 const LOCK_TIME = 5 * 60 * 1000;
 
 // =========================================================
-// PIN
+// ROLES & PIN
 // =========================================================
 let pinBuf = '';
-function getPin() { return localStorage.getItem('yd_pin') || '1234'; }
+let currentRole = ''; // 'manager' or 'operator'
+
+function getMgrPin() { return localStorage.getItem('yd_pin') || '1234'; }
+function getOpPin()  { return localStorage.getItem('yd_op_pin') || '5678'; }
+
+// OPERATOR permissions: which tabs are allowed
+const OP_TABS = ['dashboard', 'vendors', 'collection', 'records'];
+const OP_VENDOR_SUBS = ['list', 'report']; // no 'add'
 
 function initLogin() {
-  const hasPin = !!localStorage.getItem('yd_pin');
-  document.getElementById('login-sub').textContent = hasPin ? 'Enter your PIN to continue' : 'Enter PIN to login (default: 1234)';
-  document.getElementById('pin-hint').textContent = hasPin ? '' : 'Change your PIN after login in the Security tab.';
+  // Show role step, hide pin step
+  document.getElementById('role-step').classList.remove('hidden');
+  document.getElementById('pin-step').classList.add('hidden');
   pinBuf = ''; updateDots();
   document.getElementById('pin-err').textContent = '';
+  currentRole = '';
+}
+
+function selectRole(role) {
+  currentRole = role;
+  document.getElementById('role-step').classList.add('hidden');
+  document.getElementById('pin-step').classList.remove('hidden');
+  document.getElementById('login-sub').textContent =
+    role === 'manager' ? '👔 Manager PIN' : '👷 Operator PIN';
+  pinBuf = ''; updateDots();
+  document.getElementById('pin-err').textContent = '';
+}
+
+function backToRoles() {
+  document.getElementById('pin-step').classList.add('hidden');
+  document.getElementById('role-step').classList.remove('hidden');
+  pinBuf = ''; updateDots();
+  currentRole = '';
 }
 
 function pp(d) {
@@ -473,15 +584,36 @@ function pd() { pinBuf = pinBuf.slice(0,-1); updateDots(); document.getElementBy
 function updateDots() { for(let i=0;i<4;i++) document.getElementById('d'+i).classList.toggle('filled', i < pinBuf.length); }
 
 function checkPin() {
-  if (pinBuf === getPin()) {
+  const correctPin = currentRole === 'manager' ? getMgrPin() : getOpPin();
+  if (pinBuf === correctPin) {
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('app').classList.remove('hidden');
+    applyRoleUI();
     initApp();
     resetLock();
   } else {
     document.getElementById('pin-err').textContent = '❌ Wrong PIN. Try again.';
     pinBuf = ''; updateDots();
   }
+}
+
+function applyRoleUI() {
+  const isMgr = currentRole === 'manager';
+  // Update role badge in header
+  const badge = document.getElementById('role-badge');
+  badge.className = 'role-badge ' + (isMgr ? 'role-manager' : 'role-operator');
+  badge.textContent = isMgr ? '👔 Manager' : '👷 Operator';
+
+  // Show/hide tabs based on role
+  const hiddenTabs = isMgr ? [] : ['payments', 'security'];
+  ['dashboard','vendors','collection','payments','records','security'].forEach(t => {
+    const btn = document.getElementById('tab-btn-' + t);
+    if (btn) btn.style.display = hiddenTabs.includes(t) ? 'none' : '';
+  });
+
+  // Show/hide Add Vendor sub-tab for operator
+  const addBtn = document.getElementById('vs-add-btn');
+  if (addBtn) addBtn.style.display = isMgr ? '' : 'none';
 }
 
 function lockApp() {
@@ -503,14 +635,25 @@ function changePin() {
   const op = document.getElementById('op').value;
   const np = document.getElementById('np').value;
   const cp2 = document.getElementById('cp').value;
-  if (op !== getPin()) { toast('Current PIN incorrect', 'error'); return; }
+  if (op !== getMgrPin()) { toast('Current Manager PIN incorrect', 'error'); return; }
   if (!/^\d{4}$/.test(np)) { toast('PIN must be 4 digits', 'error'); return; }
   if (np !== cp2) { toast('PINs do not match', 'error'); return; }
   localStorage.setItem('yd_pin', np);
-  document.getElementById('op').value = '';
-  document.getElementById('np').value = '';
-  document.getElementById('cp').value = '';
-  toast('✅ PIN updated!');
+  ['op','np','cp'].forEach(id => document.getElementById(id).value = '');
+  toast('✅ Manager PIN updated!');
+}
+
+function changeOperatorPin() {
+  const auth = document.getElementById('op-auth').value;
+  const np   = document.getElementById('op-np').value;
+  const cp2  = document.getElementById('op-cp').value;
+  if (auth !== getMgrPin()) { toast('Manager PIN incorrect', 'error'); return; }
+  if (!/^\d{4}$/.test(np)) { toast('PIN must be 4 digits', 'error'); return; }
+  if (np !== cp2) { toast('PINs do not match', 'error'); return; }
+  if (np === getMgrPin()) { toast('Operator PIN cannot be same as Manager PIN', 'error'); return; }
+  localStorage.setItem('yd_op_pin', np);
+  ['op-auth','op-np','op-cp'].forEach(id => document.getElementById(id).value = '');
+  toast('✅ Operator PIN updated!');
 }
 
 // =========================================================
@@ -586,15 +729,18 @@ function cycleDates(yr, mo, cy) {
 // TABS
 // =========================================================
 function switchTab(t, btn) {
+  // Role enforcement
+  if (currentRole === 'operator' && (t === 'payments' || t === 'security')) {
+    toast('Access denied for Operator role', 'error'); return;
+  }
+  // Sheet enforcement
+  if (!sheetUrl && t !== 'dashboard' && t !== 'security') {
+    toast('Connect to Google Sheets first!', 'error'); return;
+  }
   document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('tab-'+t).classList.add('active');
   btn.classList.add('active');
-  // If not connected to sheet, only allow dashboard & security
-  if (!sheetUrl && t!=='dashboard' && t!=='security') {
-    toast('Connect to Google Sheets first!','error');
-    return;
-  }
   if (t==='collection') { initCollDate(); renderColl(); }
   if (t==='payments') renderPay();
   if (t==='records') { updRecSel(); renderRec(); }
@@ -604,11 +750,15 @@ function switchTab(t, btn) {
 }
 
 function vSub(s) {
-  ['list','add','report'].forEach(x => {
+  if (s === 'add' && currentRole === 'operator') {
+    toast('Only Manager can add vendors', 'error'); return;
+  }
+  ['list','add','report','outstanding'].forEach(x => {
     document.getElementById('vs-'+x).classList.toggle('hidden', x!==s);
     document.getElementById('vs-'+x+'-btn').classList.toggle('active', x===s);
   });
   if (s==='report') { updRptSel(); renderReport(); }
+  if (s==='outstanding') { initOutstanding(); renderOutstanding(); }
 }
 
 // =========================================================
@@ -674,7 +824,7 @@ function renderVList() {
           <span class="rate-tag rate-buffalo">🐃 ₹${v.buffaloRate}/L</span>
         </div>
       </div>
-      <button class="btn btn-outline btn-sm" onclick="openRate('${v.id}')" title="Update rates only">₹ Rate</button>
+      ${currentRole === 'manager' ? `<button class="btn btn-outline btn-sm" onclick="openRate('${v.id}')" title="Update rates only">₹ Rate</button>` : ''}
     </div>`).join('');
 }
 
@@ -938,13 +1088,255 @@ function renderReport() {
 }
 
 // =========================================================
+// OUTSTANDING LEDGER
+// =========================================================
+
+let osCurrentView = 'all'; // 'all' or 'single'
+
+function osView(v) {
+  osCurrentView = v;
+  document.getElementById('os-all-btn').classList.toggle('active', v==='all');
+  document.getElementById('os-single-btn').classList.toggle('active', v==='single');
+  document.querySelectorAll('.os-single-only').forEach(el => el.classList.toggle('hidden', v!=='single'));
+  renderOutstanding();
+}
+
+function initOutstanding() {
+  const now = new Date();
+  document.getElementById('os-mo').value = now.getMonth();
+  document.getElementById('os-yr').value = now.getFullYear();
+  // Populate vendor selector
+  const sel = document.getElementById('os-vid');
+  sel.innerHTML = '<option value="">Select Vendor</option>' + V.map(v=>`<option value="${v.id}">${v.name}</option>`).join('');
+}
+
+// Returns all cycles from first ever collection to given month/year end
+function getAllCyclesUpTo(yr, mo) {
+  if (!C.length) return [];
+  // Find earliest date in collection
+  const earliest = C.map(r=>r.date).sort()[0];
+  if (!earliest) return [];
+  const [ey, em] = earliest.split('-').map(Number);
+  const cycles = [];
+  let cy = ey, cm = em - 1; // cm is 0-indexed month
+  const endYr = yr, endMo = mo; // 0-indexed
+  while (cy < endYr || (cy === endYr && cm <= endMo)) {
+    [1,2,3].forEach(cyc => {
+      const {s, e} = cycleDates(cy, cm, cyc);
+      // Only include cycles up to end of selected month
+      const cycEnd = `${endYr}-${String(endMo+1).padStart(2,'0')}-31`;
+      if (s <= cycEnd) cycles.push({yr:cy, mo:cm, cyc, s, e});
+    });
+    cm++;
+    if (cm > 11) { cm = 0; cy++; }
+  }
+  return cycles;
+}
+
+// Core: calculate running ledger for one vendor across all cycles up to selected month
+// Returns array of cycle rows with: opening, gross, paid, closing
+function calcVendorLedger(vid, toYr, toMo) {
+  const cycles = getAllCyclesUpTo(toYr, toMo);
+  let runBal = 0; // positive = we owe vendor (debit), negative = vendor advance (credit)
+  const rows = [];
+  cycles.forEach(({yr, mo, cyc, s, e}) => {
+    const opening = runBal;
+    const vc = C.filter(r => r.vendorId === vid && r.date >= s && r.date <= e);
+    const gross = vc.reduce((a,r) => a + (r.amount||0), 0);
+    const pk = `${vid}_${s}`;
+    const ep = P.find(p => p.key === pk);
+    const paid = ep ? (ep.paidAmount||0) : 0;
+    // closing = opening + gross - paid
+    // positive closing = we still owe (debit to us)
+    // negative closing = vendor overpaid / advance (credit for next cycle)
+    const closing = opening + gross - paid;
+    runBal = closing;
+    // Only include in current month view — but always run all cycles for carry-forward
+    if (yr === toYr && mo === toMo) {
+      rows.push({ yr, mo, cyc, s, e, opening, gross, paid, closing });
+    }
+  });
+  return { rows, finalBalance: runBal };
+}
+
+function renderOutstanding() {
+  const mo = parseInt(document.getElementById('os-mo').value);
+  const yr = parseInt(document.getElementById('os-yr').value);
+  const out = document.getElementById('outstanding-out');
+  if (!V.length) { out.innerHTML = '<div class="card"><div class="empty"><div class="ico">👤</div><p>No vendors yet.</p></div></div>'; return; }
+  const MN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  if (osCurrentView === 'all') {
+    renderOutstandingAll(mo, yr, MN, out);
+  } else {
+    const vid = document.getElementById('os-vid').value;
+    if (!vid) { out.innerHTML = '<div class="card"><div class="empty"><div class="ico">👤</div><p>Select a vendor to view ledger.</p></div></div>'; return; }
+    renderOutstandingSingle(vid, mo, yr, MN, out);
+  }
+}
+
+function renderOutstandingAll(mo, yr, MN, out) {
+  let totalDebit = 0, totalCredit = 0, totalSettled = 0;
+  const rows = V.map(v => {
+    const { rows: cycRows, finalBalance } = calcVendorLedger(v.id, yr, mo);
+    const bal = finalBalance; // balance at END of selected month
+    if (bal > 0.005) totalDebit += bal;
+    else if (bal < -0.005) totalCredit += Math.abs(bal);
+    else totalSettled++;
+    return { v, bal, cycRows };
+  }).sort((a,b) => Math.abs(b.bal) - Math.abs(a.bal));
+
+  const summaryHtml = `
+    <div class="card">
+      <div class="card-title"><span>📊</span> Summary — ${MN[mo]} ${yr}</div>
+      <div class="summary-grid">
+        <div class="summary-box">
+          <div class="snum os-debit">₹${totalDebit.toFixed(0)}</div>
+          <div class="slbl">Total Debit (We Owe)</div>
+        </div>
+        <div class="summary-box">
+          <div class="snum os-credit">₹${totalCredit.toFixed(0)}</div>
+          <div class="slbl">Total Advance (Vendor Overpaid)</div>
+        </div>
+        <div class="summary-box">
+          <div class="snum os-zero">${totalSettled}</div>
+          <div class="slbl">Fully Settled</div>
+        </div>
+      </div>
+    </div>`;
+
+  const vendorCards = rows.map(({v, bal, cycRows}) => {
+    const balClass = bal > 0.005 ? 'os-debit' : bal < -0.005 ? 'os-credit' : 'os-zero';
+    const balLabel = bal > 0.005 ? '🔴 We Owe' : bal < -0.005 ? '🟢 Advance' : '✅ Settled';
+    const balDisplay = bal > 0.005 ? `₹${bal.toFixed(0)}` : bal < -0.005 ? `₹${Math.abs(bal).toFixed(0)} advance` : '₹0';
+
+    // Cycle breakdown for this month
+    const cycleDetail = cycRows.map(row => {
+      const cBal = row.closing;
+      const cClass = cBal > 0.005 ? 'os-debit' : cBal < -0.005 ? 'os-credit' : 'os-zero';
+      return `<div class="ledger-row">
+        <div>
+          <div class="ledger-cycle">Cycle ${cycleName(row.cyc)} (${fmtDate(row.s)}–${fmtDate(row.e)})</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px;">
+            Opening: <span style="color:${row.opening>0.005?'var(--morning)':row.opening<-0.005?'var(--green)':'var(--muted)'};">₹${row.opening.toFixed(0)}</span>
+            &nbsp;+&nbsp; Gross: <span style="color:var(--accent);">₹${row.gross.toFixed(0)}</span>
+            &nbsp;−&nbsp; Paid: <span style="color:var(--green);">₹${row.paid.toFixed(0)}</span>
+          </div>
+        </div>
+        <div class="ledger-val ${cClass}">₹${Math.abs(cBal).toFixed(0)}<br><span style="font-size:9px;font-weight:400;">${cBal>0.005?'due':cBal<-0.005?'advance':'settled'}</span></div>
+      </div>`;
+    }).join('') || `<div style="font-size:12px;color:var(--muted);padding:10px 0;">No collection this month</div>`;
+
+    return `<div class="os-card">
+      <div class="os-header" onclick="this.nextElementSibling.classList.toggle('hidden')">
+        <div class="vendor-avatar" style="width:34px;height:34px;font-size:13px;">${v.name[0].toUpperCase()}</div>
+        <div style="flex:1;">
+          <div style="font-weight:700;font-size:14px;">${v.name}</div>
+          <div style="font-size:11px;color:var(--muted);">${balLabel}</div>
+        </div>
+        <div class="ledger-val ${balClass}" style="font-size:16px;">${balDisplay}</div>
+      </div>
+      <div class="os-body hidden">
+        <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;padding:10px 0 6px;">This Month Cycle Breakdown</div>
+        ${cycleDetail}
+        <div class="ledger-total-row">
+          <span>Closing Balance — ${MN[mo]} ${yr}</span>
+          <span class="${balClass}">${balDisplay}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  out.innerHTML = summaryHtml + vendorCards;
+}
+
+function renderOutstandingSingle(vid, mo, yr, MN, out) {
+  const v = V.find(x => x.id === vid);
+  if (!v) return;
+  const { rows } = calcVendorLedger(v.id, yr, mo);
+
+  if (!rows.length) {
+    out.innerHTML = `<div class="card"><div class="empty"><div class="ico">📭</div><p>No data for ${v.name} in ${MN[mo]} ${yr}.</p></div></div>`;
+    return;
+  }
+
+  const monthGross = rows.reduce((a,r) => a+r.gross, 0);
+  const monthPaid  = rows.reduce((a,r) => a+r.paid, 0);
+  const openingBal = rows[0].opening;
+  const closingBal = rows[rows.length-1].closing;
+  const balClass = closingBal > 0.005 ? 'os-debit' : closingBal < -0.005 ? 'os-credit' : 'os-zero';
+
+  const summaryHtml = `
+    <div class="card">
+      <div class="card-title"><span>👤</span> ${v.name} — ${MN[mo]} ${yr}</div>
+      <div class="summary-grid">
+        <div class="summary-box">
+          <div class="snum" style="color:${openingBal>0.005?'var(--morning)':openingBal<-0.005?'var(--green)':'var(--muted)'};">
+            ${openingBal>0.005?'₹'+openingBal.toFixed(0):openingBal<-0.005?'₹'+Math.abs(openingBal).toFixed(0)+' adv':'₹0'}
+          </div>
+          <div class="slbl">Opening Balance</div>
+        </div>
+        <div class="summary-box">
+          <div class="snum" style="color:var(--accent);">₹${monthGross.toFixed(0)}</div>
+          <div class="slbl">Total Collection</div>
+        </div>
+        <div class="summary-box">
+          <div class="snum" style="color:var(--green);">₹${monthPaid.toFixed(0)}</div>
+          <div class="slbl">Total Paid</div>
+        </div>
+      </div>
+    </div>`;
+
+  const ledgerHtml = `
+    <div class="card">
+      <div class="card-title"><span>📒</span> Cycle Ledger</div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;">
+        <!-- Header -->
+        <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;padding:8px 12px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--muted);border-bottom:1px solid var(--border);">
+          <div>Cycle</div><div style="text-align:right;">Opening</div><div style="text-align:right;">Gross</div><div style="text-align:right;">Paid</div><div style="text-align:right;">Closing</div>
+        </div>
+        ${rows.map(row => {
+          const cClass = row.closing > 0.005 ? 'os-debit' : row.closing < -0.005 ? 'os-credit' : 'os-zero';
+          const oClass = row.opening > 0.005 ? 'os-debit' : row.opening < -0.005 ? 'os-credit' : 'os-zero';
+          const oLabel = row.opening > 0.005 ? '↑ b/f' : row.opening < -0.005 ? '↑ adv' : '';
+          return `<div style="display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr 1fr;padding:10px 12px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px;">
+            <div>
+              <div style="font-weight:700;">Cycle ${cycleName(row.cyc)}</div>
+              <div style="font-size:10px;color:var(--muted);">${fmtDate(row.s)}–${fmtDate(row.e)}</div>
+            </div>
+            <div style="text-align:right;" class="${oClass}">${row.opening!==0?'₹'+Math.abs(row.opening).toFixed(0)+'<br><span style="font-size:9px;">'+oLabel+'</span>':'—'}</div>
+            <div style="text-align:right;color:var(--accent);font-weight:600;">${row.gross>0?'₹'+row.gross.toFixed(0):'—'}</div>
+            <div style="text-align:right;color:var(--green);font-weight:600;">${row.paid>0?'₹'+row.paid.toFixed(0):'—'}</div>
+            <div style="text-align:right;font-weight:800;" class="${cClass}">${'₹'+Math.abs(row.closing).toFixed(0)}<br><span style="font-size:9px;font-weight:400;">${row.closing>0.005?'due':row.closing<-0.005?'adv':'✅'}</span></div>
+          </div>`;
+        }).join('')}
+        <div class="ledger-total-row">
+          <span>Closing Balance</span>
+          <span class="${balClass}" style="font-size:15px;">${closingBal>0.005?'₹'+closingBal.toFixed(0)+' (we owe)':closingBal<-0.005?'₹'+Math.abs(closingBal).toFixed(0)+' advance':'✅ Settled'}</span>
+        </div>
+      </div>
+    </div>`;
+
+  out.innerHTML = summaryHtml + ledgerHtml;
+}
+
+// =========================================================
 // SECURITY TAB
 // =========================================================
 function renderSecStatus() {
-  const el=document.getElementById('sec-sheet-status');
+  const el = document.getElementById('sec-sheet-status');
   el.innerHTML = sheetUrl
     ? `<span style="color:var(--green);">✅ Connected to Google Sheets</span><br><span style="font-size:11px;color:var(--muted);word-break:break-all;">${sheetUrl.substring(0,70)}...</span>`
     : `<span style="color:var(--red);">❌ Not connected — set up Google Sheets sync</span>`;
+  // Show current PINs status
+  const pinInfo = document.getElementById('sec-pin-info');
+  if (pinInfo) {
+    pinInfo.innerHTML = `
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;">
+        <span class="role-badge role-manager">👔 Manager PIN: ${getMgrPin().replace(/./g,'•')}</span>
+        <span class="role-badge role-operator">👷 Operator PIN: ${getOpPin().replace(/./g,'•')}</span>
+      </div>`;
+  }
 }
 
 // =========================================================
