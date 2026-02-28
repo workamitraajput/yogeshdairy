@@ -466,7 +466,7 @@ code { background: var(--surface2); border: 1px solid var(--border); padding: 2p
   </div>
   <div class="card">
     <div class="card-title"><span>🔑</span> Change Manager PIN</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Default: 1234</p>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Default: 9670</p>
     <div class="form-row">
       <div class="form-group"><label>Current PIN</label><input type="password" id="op" maxlength="4" placeholder="••••" inputmode="numeric"></div>
       <div class="form-group"><label>New PIN</label><input type="password" id="np" maxlength="4" placeholder="••••" inputmode="numeric"></div>
@@ -476,7 +476,7 @@ code { background: var(--surface2); border: 1px solid var(--border); padding: 2p
   </div>
   <div class="card">
     <div class="card-title"><span>👷</span> Change Operator PIN</div>
-    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Default: 5678 — Operator can only enter milk collection</p>
+    <p style="font-size:12px;color:var(--muted);margin-bottom:14px;">Default: 1234 — Operator can only enter milk collection</p>
     <div class="form-row">
       <div class="form-group"><label>Manager PIN (to authorize)</label><input type="password" id="op-auth" maxlength="4" placeholder="••••" inputmode="numeric"></div>
       <div class="form-group"><label>New Operator PIN</label><input type="password" id="op-np" maxlength="4" placeholder="••••" inputmode="numeric"></div>
@@ -742,6 +742,31 @@ async function retryLoad() {
 // UTILS
 // =========================================================
 function uid() { return Date.now()+'_'+Math.random().toString(36).substr(2,5); }
+
+// Safely parse a date value coming from Google Sheets.
+// Google Sheets serialises Date cells as ISO strings via toISOString() in Apps Script,
+// which applies UTC — so "2025-02-01" stored in India (UTC+5:30) comes back as
+// "2025-01-31T18:30:00.000Z".  We must reconstruct the *local* calendar date that
+// was written into the cell, not the UTC interpretation.
+function sheetDate(raw) {
+  if (!raw) return '';
+  const s = String(raw).trim();
+  // Already plain YYYY-MM-DD (no timezone shift needed)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  // ISO datetime — parse and use LOCAL date parts (not UTC)
+  if (s.includes('T')) {
+    // Add 5:30 offset for IST to recover the original calendar date
+    const d = new Date(s);
+    // Use IST offset: UTC+5:30 = 330 minutes
+    const ist = new Date(d.getTime() + 330 * 60 * 1000);
+    const yr  = ist.getUTCFullYear();
+    const mo  = String(ist.getUTCMonth()+1).padStart(2,'0');
+    const dy  = String(ist.getUTCDate()).padStart(2,'0');
+    return `${yr}-${mo}-${dy}`;
+  }
+  // Fallback: take first 10 chars
+  return s.substring(0,10);
+}
 function toast(msg, type='success') {
   const el = document.getElementById('toast');
   el.textContent = msg; el.className = 'toast '+type+' show';
@@ -1564,9 +1589,7 @@ async function loadSheet(d) {
     buffaloRate:parseFloat(sv.BuffaloRate)||0
   }));
   if (d.collections) d.collections.forEach(sc=>{
-    // Google Sheets may return date as "2025-02-01T00:00:00.000Z" or "2025-02-01" — normalize
-    const rawDate = String(sc.Date||'');
-    const date = rawDate.includes('T') ? rawDate.substring(0,10) : rawDate.substring(0,10);
+    const date = sheetDate(sc.Date);
     C.push({
       id:String(sc.ID).trim(),
       date,
@@ -1581,11 +1604,8 @@ async function loadSheet(d) {
     });
   });
   if (d.payments) d.payments.forEach(sp=>{
-    // Normalize CycleStart date — Google Sheets may return as datetime
-    const rawCS = String(sp.CycleStart||'');
-    const rawCE = String(sp.CycleEnd||'');
-    const cs = rawCS.includes('T') ? rawCS.substring(0,10) : rawCS.substring(0,10);
-    const ce = rawCE.includes('T') ? rawCE.substring(0,10) : rawCE.substring(0,10);
+    const cs  = sheetDate(sp.CycleStart);
+    const ce  = sheetDate(sp.CycleEnd);
     const vid = String(sp.VendorID).trim();
     P.push({
       id:String(sp.ID).trim(),
